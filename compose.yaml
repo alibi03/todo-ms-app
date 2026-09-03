@@ -1,0 +1,58 @@
+name: staj-microservices
+
+services:
+  user-db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: staj_users
+      POSTGRES_USER: staj_user
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD:?Set USER_DB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - user-data
+
+  user-service:
+    build:
+      context: ./services/user-service
+    environment:
+      PORT: 3000
+      DB_HOST: user-db
+      DB_PORT: 5432
+      DB_NAME: staj_users
+      DB_USER: staj_user
+      DB_PASSWORD: ${USER_DB_PASSWORD:?Set USER_DB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:3001:3000"
+    depends_on:
+      user-db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    networks:
+      - app-net
+      - user-data
+
+volumes:
+  user_db_data:
+
+networks:
+  app-net:
+  user-data:
+    internal: true
