@@ -7,9 +7,13 @@ import createApp from "../src/app";
 async function startServer(
   checkDatabase: () => Promise<void>
 ): Promise<{ baseUrl: string; server: Server }> {
-  const server = createApp(checkDatabase, {
-    error: () => undefined,
-  }).listen(0, "127.0.0.1");
+  const server = createApp(
+    {
+      checkDatabase,
+      registration: { register: async () => { throw new Error("Not used by health tests."); } },
+    },
+    { error: () => undefined }
+  ).listen(0, "127.0.0.1");
 
   await new Promise<void>((resolve, reject) => {
     server.once("listening", resolve);

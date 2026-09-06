@@ -1,4 +1,4 @@
-import { Pool, type PoolClient } from "pg";
+import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg";
 
 import type { DatabaseConfig } from "./config";
 
@@ -46,6 +46,13 @@ class UserDatabase {
     } finally {
       client.release();
     }
+  }
+
+  async query<T extends QueryResultRow>(
+    text: string,
+    values: unknown[] = []
+  ): Promise<QueryResult<T>> {
+    return this.pool.query<T>(text, values);
   }
 
   async checkHealth(): Promise<void> {

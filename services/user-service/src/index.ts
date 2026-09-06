@@ -5,6 +5,8 @@ import type { Server } from "node:http";
 import createApp from "./app";
 import { loadConfig } from "./config";
 import UserDatabase from "./database";
+import RegistrationService from "./registration";
+import UserRepository from "./user-repository";
 
 async function listen(server: Server): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -37,7 +39,12 @@ async function main(): Promise<void> {
     throw error;
   }
 
-  const app = createApp(() => database.checkHealth());
+  const users = new UserRepository(database);
+  const registration = new RegistrationService(users);
+  const app = createApp({
+    checkDatabase: () => database.checkHealth(),
+    registration,
+  });
   const server = app.listen(config.port, "0.0.0.0");
   await listen(server);
 
