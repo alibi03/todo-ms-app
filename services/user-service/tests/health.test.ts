@@ -3,12 +3,14 @@ import type { Server } from "node:http";
 import test from "node:test";
 
 import createApp from "../src/app";
+import unusedAuth from "./test-auth";
 
 async function startServer(
   checkDatabase: () => Promise<void>
 ): Promise<{ baseUrl: string; server: Server }> {
   const server = createApp(
     {
+      ...unusedAuth,
       checkDatabase,
       registration: { register: async () => { throw new Error("Not used by health tests."); } },
     },

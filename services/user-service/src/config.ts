@@ -9,6 +9,7 @@ type DatabaseConfig = {
 type UserServiceConfig = {
   port: number;
   database: DatabaseConfig;
+  jwtSecret: string;
 };
 
 function requireValue(
@@ -47,8 +48,15 @@ function readPort(
 function loadConfig(
   environment: NodeJS.ProcessEnv = process.env
 ): UserServiceConfig {
+  const jwtSecret = requireValue(environment, "JWT_SECRET");
+
+  if (Buffer.byteLength(jwtSecret, "utf8") < 32) {
+    throw new Error("JWT_SECRET must contain at least 32 bytes.");
+  }
+
   return {
     port: readPort(environment, "PORT", 3000),
+    jwtSecret,
     database: {
       host: requireValue(environment, "DB_HOST"),
       port: readPort(environment, "DB_PORT", 5432),

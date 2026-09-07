@@ -23,8 +23,47 @@ type UserWriter = {
 
 type UserRow = Omit<PublicUser, "created_at"> & { created_at: Date };
 
-class UserRepository implements UserWriter {
+type LoginUser = Pick<PublicUser, "id" | "role"> & { passwordHash: string };
+
+type UserReader = {
+  findByEmail(email: string): Promise<LoginUser | null>;
+  findById(id: number): Promise<PublicUser | null>;
+};
+
+function toPublicUser(row: UserRow): PublicUser {
+  return {
+    id: row.id,
+    username: row.username,
+    email: row.email,
+    role: row.role,
+    created_at: row.created_at.toISOString(),
+  };
+}
+
+class UserRepository implements UserWriter, UserReader {
   constructor(private readonly database: Pick<UserDatabase, "query">) {}
+
+  async findByEmail(email: string): Promise<LoginUser | null> {
+    const result = await this.database.query<{
+      id: number;
+      role: PublicUser["role"];
+      password_hash: string;
+    }>(
+      "SELECT id, role, password_hash FROM users WHERE email = $1",
+      [email]
+    );
+    const row = result.rows[0];
+    return row ? { id: row.id, role: row.role, passwordHash: row.password_hash } : null;
+  }
+
+  async findById(id: number): Promise<PublicUser | null> {
+    const result = await this.database.query<UserRow>(
+      "SELECT id, username, email, role, created_at FROM users WHERE id = $1",
+      [id]
+    );
+    const row = result.rows[0];
+    return row ? toPublicUser(row) : null;
+  }
 
   async create(user: NewUser): Promise<PublicUser> {
     try {
@@ -40,13 +79,7 @@ class UserRepository implements UserWriter {
         throw new Error("Created user could not be loaded.");
       }
 
-      return {
-        id: row.id,
-        username: row.username,
-        email: row.email,
-        role: row.role,
-        created_at: row.created_at.toISOString(),
-      };
+      return toPublicUser(row);
     } catch (error) {
       if (error instanceof DatabaseError && error.code === "23505") {
         throw new HttpError(409, "Username or email already exists.");
@@ -57,5 +90,5 @@ class UserRepository implements UserWriter {
   }
 }
 
-export { type NewUser, type PublicUser, type UserWriter };
+export { type LoginUser, type NewUser, type PublicUser, type UserReader, type UserWriter };
 export default UserRepository;

@@ -7,6 +7,7 @@ import HttpError from "../src/errors";
 import RegistrationService, { parseRegistration } from "../src/registration";
 import type { NewUser, PublicUser } from "../src/user-repository";
 import withServer from "./test-server";
+import unusedAuth from "./test-auth";
 
 const validInput = {
   username: "demo_user",
@@ -107,7 +108,7 @@ test("invalid registrations reach neither hashing nor the repository", async () 
 
 test("registration HTTP response is 201 with the original public user contract", async () => {
   const registration = new RegistrationService({ create: async () => publicUser });
-  const app = createApp({ checkDatabase: async () => undefined, registration });
+  const app = createApp({ ...unusedAuth, checkDatabase: async () => undefined, registration });
 
   await withServer(app, async (baseUrl) => {
     const response = await post(baseUrl, validInput);
@@ -125,7 +126,7 @@ test("invalid HTTP requests return 400 without inserting users", async () => {
   const registration = new RegistrationService({
     create: async () => { writes++; return publicUser; },
   });
-  const app = createApp({ checkDatabase: async () => undefined, registration });
+  const app = createApp({ ...unusedAuth, checkDatabase: async () => undefined, registration });
 
   await withServer(app, async (baseUrl) => {
     for (const body of invalidBodies) {
@@ -141,6 +142,7 @@ test("invalid HTTP requests return 400 without inserting users", async () => {
 
 test("duplicate HTTP requests return a generic conflict response", async () => {
   const app = createApp({
+    ...unusedAuth,
     checkDatabase: async () => undefined,
     registration: { register: async () => { throw new HttpError(409, "Username or email already exists."); } },
   });
@@ -155,6 +157,7 @@ test("duplicate HTTP requests return a generic conflict response", async () => {
 test("malformed and oversized JSON return 400 and 413 without leaking the body", async () => {
   let calls = 0;
   const app = createApp({
+    ...unusedAuth,
     checkDatabase: async () => undefined,
     registration: { register: async () => { calls++; return publicUser; } },
   });
@@ -179,6 +182,7 @@ test("malformed and oversized JSON return 400 and 413 without leaking the body",
 test("unexpected failures hide database details from HTTP responses and logs", async () => {
   const logged: unknown[] = [];
   const app = createApp({
+    ...unusedAuth,
     checkDatabase: async () => undefined,
     registration: { register: async () => { throw new Error("private-test-value: database connection details"); } },
   }, { error: (...args) => { logged.push(args); } });
@@ -196,6 +200,7 @@ test("unexpected failures hide database details from HTTP responses and logs", a
 test("registration is limited to 20 attempts per IP while health remains available", async () => {
   let calls = 0;
   const app = createApp({
+    ...unusedAuth,
     checkDatabase: async () => undefined,
     registration: { register: async () => { calls++; throw new HttpError(400, "Invalid request."); } },
   });

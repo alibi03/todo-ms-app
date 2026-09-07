@@ -10,6 +10,7 @@ import UserDatabase from "../src/database";
 import RegistrationService from "../src/registration";
 import UserRepository, { type PublicUser } from "../src/user-repository";
 import withServer from "./test-server";
+import unusedAuth from "./test-auth";
 
 test("registration works with a fresh PostgreSQL database", async (t) => {
   const config = loadConfig();
@@ -29,7 +30,7 @@ test("registration works with a fresh PostgreSQL database", async (t) => {
     });
 
     const registration = new RegistrationService(new UserRepository(database));
-    const app = createApp({ checkDatabase: () => database.checkHealth(), registration });
+    const app = createApp({ ...unusedAuth, checkDatabase: () => database.checkHealth(), registration });
     const password = "Example-test-password-123!";
 
     await withServer(app, async (baseUrl) => {

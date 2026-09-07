@@ -1,11 +1,15 @@
 import "dotenv/config";
 
+import { randomBytes } from "node:crypto";
 import type { Server } from "node:http";
+import bcrypt from "bcrypt";
 
 import createApp from "./app";
+import AuthenticationService from "./authentication";
 import { loadConfig } from "./config";
 import UserDatabase from "./database";
 import RegistrationService from "./registration";
+import TokenService from "./token";
 import UserRepository from "./user-repository";
 
 async function listen(server: Server): Promise<void> {
@@ -30,6 +34,8 @@ async function closeServer(server: Server): Promise<void> {
 
 async function main(): Promise<void> {
   const config = loadConfig();
+  const tokens = new TokenService(config.jwtSecret);
+  const dummyPasswordHash = await bcrypt.hash(randomBytes(32).toString("hex"), 12);
   const database = new UserDatabase(config.database);
 
   try {
@@ -41,9 +47,12 @@ async function main(): Promise<void> {
 
   const users = new UserRepository(database);
   const registration = new RegistrationService(users);
+  const authentication = new AuthenticationService(users, tokens, dummyPasswordHash);
   const app = createApp({
     checkDatabase: () => database.checkHealth(),
     registration,
+    authentication,
+    tokens,
   });
   const server = app.listen(config.port, "0.0.0.0");
   await listen(server);
