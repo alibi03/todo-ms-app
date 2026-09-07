@@ -3,17 +3,20 @@ import test from "node:test";
 import bcrypt from "bcrypt";
 
 import createApp from "../src/app";
-import AuthenticationService, { parseLogin } from "../src/authentication";
-import HttpError from "../src/errors";
-import TokenService from "../src/token";
-import type { LoginUser, PublicUser, UserReader } from "../src/user-repository";
-import unusedAuth from "./test-auth";
-import withServer from "./test-server";
+import AuthenticationService from "../src/services/AuthenticationService";
+import { AuthenticationError } from "../src/errors/ApplicationErrors";
+import User from "../src/models/domain/User";
+import type UserCredentials from "../src/models/domain/UserCredentials";
+import UserResponseMapper from "../src/mappers/UserResponseMapper";
+import { LoginRequestDto } from "../src/models/requests/AuthRequests";
+import RequestValidator from "../src/utils/RequestValidator";
+import TokenService from "../src/services/TokenService";
+import type { UserReader } from "../src/ports/RepositoryPorts";
+import unusedAuth from "./testAuth";
+import withServer from "./testServer";
 
 const input = { email: "demo@example.com", password: "  Example-test-password-123!  " };
-const user: PublicUser = {
-  id: 42, username: "demo", email: input.email, role: "member", created_at: "2026-09-07T12:00:00.000Z",
-};
+const user = new User(42, "demo", input.email, "member", new Date("2026-09-07T12:00:00.000Z"));
 const tokens = new TokenService("test-only-jwt-secret-not-for-deployment");
 const passwordHash = bcrypt.hash(input.password, 12);
 const dummyHash = bcrypt.hash("test-only-dummy-password", 12);
@@ -41,11 +44,11 @@ function makeApp(authentication: Pick<AuthenticationService, "login" | "getProfi
   }, { error: () => undefined });
 }
 
-test("login normalizes email but does not trim or impose a new minimum on passwords", () => {
-  assert.deepEqual(parseLogin({ ...input, email: "  Demo@Example.COM  " }), input);
-  assert.equal(parseLogin({ ...input, password: "x" }).password, "x");
-  assert.equal(parseLogin({ ...input, password: "a".repeat(72) }).password.length, 72);
-  assert.equal(parseLogin({ ...input, password: "😀".repeat(18) }).password, "😀".repeat(18));
+test("login normalizes email but does not trim or impose a new minimum on passwords", async () => {
+  assert.deepEqual({ ...await RequestValidator.validate(LoginRequestDto, { ...input, email: "  Demo@Example.COM  " }) }, input);
+  assert.equal((await RequestValidator.validate(LoginRequestDto, { ...input, password: "x" })).password, "x");
+  assert.equal((await RequestValidator.validate(LoginRequestDto, { ...input, password: "a".repeat(72) })).password.length, 72);
+  assert.equal((await RequestValidator.validate(LoginRequestDto, { ...input, password: "😀".repeat(18) })).password, "😀".repeat(18));
 });
 
 test("invalid login bodies never reach storage or token creation", async () => {
@@ -80,13 +83,13 @@ test("login checks bcrypt and returns only a signed token", async () => {
     assert.equal(response.headers.get("cache-control"), "no-store");
     const body = await response.json() as { token: string };
     assert.deepEqual(Object.keys(body), ["token"]);
-    assert.deepEqual(tokens.verify(body.token), { id: user.id, role: user.role });
+    assert.deepEqual({ ...tokens.verify(body.token) }, { id: user.id, role: user.role });
     assert.equal(JSON.stringify(body).includes(await passwordHash), false);
   });
 });
 
 test("wrong password and unknown email return the same 401 and never issue tokens", async () => {
-  let stored: LoginUser | null = { id: user.id, role: user.role, passwordHash: await passwordHash };
+  let stored: UserCredentials | null = { id: user.id, role: user.role, passwordHash: await passwordHash };
   let issued = 0;
   const authentication = new AuthenticationService({
     findByEmail: async () => stored, findById: async () => user,
@@ -117,7 +120,7 @@ test("profile uses the verified subject and returns current database fields", as
     });
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("cache-control"), "no-store");
-    assert.deepEqual(await response.json(), { user: current });
+    assert.deepEqual(await response.json(), { user: UserResponseMapper.toPublicResponse(current) });
   });
 });
 
@@ -155,7 +158,7 @@ test("a deleted user's token no longer loads a profile", async () => {
 
 test("login limits do not share counters with registration or block health", async () => {
   let calls = 0;
-  const app = makeApp({ ...unusedAuth.authentication, login: async () => { calls++; throw new HttpError(401, "Invalid email or password."); } });
+  const app = makeApp({ ...unusedAuth.authentication, login: async () => { calls++; throw new AuthenticationError("Invalid email or password."); } });
 
   await withServer(app, async (baseUrl) => {
     for (let i = 0; i < 20; i++) {
@@ -167,7 +170,10 @@ test("login limits do not share counters with registration or block health", asy
     assert.equal(limited.status, 429);
     assert.ok(limited.headers.get("retry-after"));
     assert.deepEqual(await limited.json(), { message: "Too many login attempts. Please try again later." });
-    const register = await fetch(baseUrl + "/api/auth/register", { method: "POST" });
+    const register = await fetch(baseUrl + "/api/auth/register", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...input, username: "demo" }),
+    });
     assert.equal(register.status, 201);
     await register.arrayBuffer();
     const health = await fetch(baseUrl + "/api/health");

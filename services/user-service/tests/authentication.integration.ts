@@ -6,13 +6,16 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 import createApp from "../src/app";
-import AuthenticationService from "../src/authentication";
-import { loadConfig } from "../src/config";
-import UserDatabase from "../src/database";
-import RegistrationService from "../src/registration";
-import TokenService from "../src/token";
-import UserRepository, { type PublicUser } from "../src/user-repository";
-import withServer from "./test-server";
+import AuthenticationService from "../src/services/AuthenticationService";
+import { loadConfig } from "../src/config/environment";
+import UserDatabase from "../src/database/UserDatabase";
+import RegistrationService from "../src/services/RegistrationService";
+import TokenService from "../src/services/TokenService";
+import UserRepository from "../src/repositories/UserRepository";
+import type { PublicUserResponse } from "../src/models/responses/UserResponses";
+import User from "../src/models/domain/User";
+import UserCredentials from "../src/models/domain/UserCredentials";
+import withServer from "./testServer";
 
 test("login and profile work with PostgreSQL", async (t) => {
   const config = loadConfig();
@@ -29,7 +32,7 @@ test("login and profile work with PostgreSQL", async (t) => {
       registration: new RegistrationService(users), authentication, tokens,
     });
     const input = { username: "auth_integration", email: "auth-integration@example.com", password: "  Example-test-password-123!  " };
-    let registered: PublicUser;
+    let registered: PublicUserResponse;
     let token: string;
 
     await withServer(app, async (baseUrl) => {
@@ -43,7 +46,7 @@ test("login and profile work with PostgreSQL", async (t) => {
       await t.test("registered users can log in and load their own public profile", async () => {
         const registration = await post("/api/auth/register", input);
         assert.equal(registration.status, 201);
-        registered = (await registration.json() as { user: PublicUser }).user;
+        registered = (await registration.json() as { user: PublicUserResponse }).user;
 
         const login = await post("/api/auth/login", { email: "  AUTH-INTEGRATION@EXAMPLE.COM  ", password: input.password });
         assert.equal(login.status, 200);
@@ -51,11 +54,11 @@ test("login and profile work with PostgreSQL", async (t) => {
         const body = await login.json() as { token: string };
         assert.deepEqual(Object.keys(body), ["token"]);
         token = body.token;
-        assert.deepEqual(tokens.verify(token), { id: registered.id, role: "member" });
+        assert.deepEqual({ ...tokens.verify(token) }, { id: registered.id, role: "member" });
 
         const response = await profile(token);
         assert.equal(response.status, 200);
-        const result = await response.json() as { user: PublicUser };
+        const result = await response.json() as { user: PublicUserResponse };
         assert.deepEqual(result, { user: registered });
         assert.deepEqual(Object.keys(result.user).sort(), ["created_at", "email", "id", "role", "username"]);
         assert.equal(JSON.stringify(result).includes(input.password), false);
@@ -71,6 +74,17 @@ test("login and profile work with PostgreSQL", async (t) => {
           assert.equal(response.status, 401);
           assert.deepEqual(await response.json(), { message: "Invalid email or password." });
         }
+      });
+
+      await t.test("repository returns domain users and separate credentials", async () => {
+        const user = await users.findById(registered.id);
+        assert.ok(user instanceof User);
+        assert.ok(user.createdAt instanceof Date);
+        assert.equal("created_at" in user, false);
+        assert.equal("passwordHash" in user, false);
+        const credentials = await users.findByEmail(input.email);
+        assert.ok(credentials instanceof UserCredentials);
+        assert.equal(await bcrypt.compare(input.password, credentials.passwordHash), true);
       });
 
       await t.test("expired and modified tokens cannot load profiles", async () => {
@@ -97,7 +111,7 @@ test("login and profile work with PostgreSQL", async (t) => {
         const login = await post("/api/auth/login", { email: input.email, password: input.password });
         assert.equal(login.status, 200);
         const result = await login.json() as { token: string };
-        assert.deepEqual(tokens.verify(result.token), { id: registered.id, role: "admin" });
+        assert.deepEqual({ ...tokens.verify(result.token) }, { id: registered.id, role: "admin" });
       });
 
       await t.test("deleted users cannot log in or use their previous profile token", async () => {

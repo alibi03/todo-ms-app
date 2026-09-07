@@ -1,18 +1,17 @@
 import jwt from "jsonwebtoken";
 
-import HttpError from "./errors";
-import type { PublicUser } from "./user-repository";
+import { AuthenticationError } from "../errors/ApplicationErrors";
+import AuthenticatedUser from "../models/domain/AuthenticatedUser";
+import type { TokenServicePort } from "../ports/ServicePorts";
 
 const issuer = "staj-user-service";
 const audience = "staj-apis";
 const lifetimeSeconds = 60 * 60;
 
-type TokenUser = Pick<PublicUser, "id" | "role">;
-
-class TokenService {
+class TokenService implements TokenServicePort {
   constructor(private readonly secret: string) {}
 
-  create(user: TokenUser): string {
+  create(user: AuthenticatedUser): string {
     return jwt.sign({ role: user.role }, this.secret, {
       algorithm: "HS256",
       subject: String(user.id),
@@ -22,7 +21,7 @@ class TokenService {
     });
   }
 
-  verify(token: string): TokenUser {
+  verify(token: string): AuthenticatedUser {
     let payload: string | jwt.JwtPayload;
 
     try {
@@ -33,7 +32,7 @@ class TokenService {
         maxAge: lifetimeSeconds,
       });
     } catch {
-      throw new HttpError(401, "Token is invalid or expired.");
+      throw new AuthenticationError("Token is invalid or expired.");
     }
 
     const now = Math.floor(Date.now() / 1000);
@@ -48,10 +47,10 @@ class TokenService {
       payload.iat < 0 || payload.iat > now || payload.exp <= payload.iat ||
       payload.exp - payload.iat > lifetimeSeconds
     ) {
-      throw new HttpError(401, "Token is invalid or expired.");
+      throw new AuthenticationError("Token is invalid or expired.");
     }
 
-    return { id: Number(payload.sub), role: payload.role };
+    return new AuthenticatedUser(Number(payload.sub), payload.role);
   }
 }
 

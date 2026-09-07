@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 
-import HttpError from "../src/errors";
-import TokenService from "../src/token";
+import { AuthenticationError } from "../src/errors/ApplicationErrors";
+import AuthenticatedUser from "../src/models/domain/AuthenticatedUser";
+import TokenService from "../src/services/TokenService";
 
 const secret = "test-only-jwt-secret-not-for-deployment";
 const tokens = new TokenService(secret);
@@ -18,7 +19,7 @@ test("tokens carry the shared API claims and expire after one hour", () => {
     assert.equal(payload.iss, "staj-user-service");
     assert.equal(payload.aud, "staj-apis");
     assert.equal(payload.exp! - payload.iat!, 3600);
-    assert.deepEqual(tokens.verify(token), { id: 42, role });
+    assert.deepEqual(tokens.verify(token), new AuthenticatedUser(42, role));
   }
 });
 
@@ -62,7 +63,7 @@ test("verification rejects invalid signatures, algorithms, times and claims", ()
 
   for (const [label, token] of invalid) {
     assert.throws(() => tokens.verify(token), (error: unknown) => {
-      return error instanceof HttpError && error.statusCode === 401;
+      return error instanceof AuthenticationError;
     }, label);
   }
 });

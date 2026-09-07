@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { loadConfig } from "../src/config";
+import { loadConfig } from "../src/config/environment";
 
 const validEnvironment: NodeJS.ProcessEnv = {
   PORT: "3000",

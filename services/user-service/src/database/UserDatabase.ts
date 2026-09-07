@@ -1,6 +1,6 @@
 import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from "pg";
 
-import type { DatabaseConfig } from "./config";
+import type { DatabaseConfig } from "../config/environment";
 
 const initialUserSchemaMigration = "001_initial_user_schema";
 

@@ -3,7 +3,7 @@ import type { Server } from "node:http";
 import test from "node:test";
 
 import createApp from "../src/app";
-import unusedAuth from "./test-auth";
+import unusedAuth from "./testAuth";
 
 async function startServer(
   checkDatabase: () => Promise<void>

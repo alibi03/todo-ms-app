@@ -5,12 +5,13 @@ import test from "node:test";
 import bcrypt from "bcrypt";
 
 import createApp from "../src/app";
-import { loadConfig } from "../src/config";
-import UserDatabase from "../src/database";
-import RegistrationService from "../src/registration";
-import UserRepository, { type PublicUser } from "../src/user-repository";
-import withServer from "./test-server";
-import unusedAuth from "./test-auth";
+import { loadConfig } from "../src/config/environment";
+import UserDatabase from "../src/database/UserDatabase";
+import RegistrationService from "../src/services/RegistrationService";
+import UserRepository from "../src/repositories/UserRepository";
+import type { PublicUserResponse } from "../src/models/responses/UserResponses";
+import withServer from "./testServer";
+import unusedAuth from "./testAuth";
 
 test("registration works with a fresh PostgreSQL database", async (t) => {
   const config = loadConfig();
@@ -43,7 +44,7 @@ test("registration works with a fresh PostgreSQL database", async (t) => {
       await t.test("HTTP registration stores a bcrypt hash and returns only public fields", async () => {
         const response = await post({ username: "  integration_user  ", email: "  Integration@Example.COM  ", password });
         assert.equal(response.status, 201);
-        const body = await response.json() as { message: string; user: PublicUser };
+        const body = await response.json() as { message: string; user: PublicUserResponse };
         assert.equal(body.message, "User registered successfully.");
         assert.deepEqual(Object.keys(body.user).sort(), ["created_at", "email", "id", "role", "username"]);
         assert.equal(body.user.username, "integration_user");
@@ -90,7 +91,7 @@ test("registration works with a fresh PostgreSQL database", async (t) => {
         const username = "reader'; DROP TABLE users; --";
         const response = await post({ username, email: "sql-test@example.com", password });
         assert.equal(response.status, 201);
-        const body = await response.json() as { user: PublicUser };
+        const body = await response.json() as { user: PublicUserResponse };
         assert.equal(body.user.username, username);
         const rows = await database.query("SELECT id FROM users WHERE username = $1", [username]);
         assert.equal(rows.rowCount, 1);

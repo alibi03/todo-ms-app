@@ -3,11 +3,15 @@ import test from "node:test";
 import bcrypt from "bcrypt";
 
 import createApp from "../src/app";
-import HttpError from "../src/errors";
-import RegistrationService, { parseRegistration } from "../src/registration";
-import type { NewUser, PublicUser } from "../src/user-repository";
-import withServer from "./test-server";
-import unusedAuth from "./test-auth";
+import { ConflictError, ValidationError } from "../src/errors/ApplicationErrors";
+import User from "../src/models/domain/User";
+import { RegisterRequestDto } from "../src/models/requests/AuthRequests";
+import { CreateUserModel } from "../src/models/repositories/UserModels";
+import type { PublicUserResponse } from "../src/models/responses/UserResponses";
+import RegistrationService from "../src/services/RegistrationService";
+import RequestValidator from "../src/utils/RequestValidator";
+import withServer from "./testServer";
+import unusedAuth from "./testAuth";
 
 const validInput = {
   username: "demo_user",
@@ -15,13 +19,14 @@ const validInput = {
   password: "Example-test-password-123!",
 };
 
-const publicUser: PublicUser = {
+const publicUser: PublicUserResponse = {
   id: 1,
   username: validInput.username,
   email: validInput.email,
   role: "member",
   created_at: "2026-09-06T12:00:00.000Z",
 };
+const user = new User(1, validInput.username, validInput.email, "member", new Date(publicUser.created_at));
 
 const invalidBodies: unknown[] = [
   undefined, null, [], "text", 10, {},
@@ -48,8 +53,8 @@ function post(baseUrl: string, body: unknown): Promise<Response> {
   });
 }
 
-test("registration trims identity fields, lowercases email, and preserves the password", () => {
-  const input = parseRegistration({
+test("registration trims identity fields, lowercases email, and preserves the password", async () => {
+  const input = await RequestValidator.validate(RegisterRequestDto, {
     username: "  demo_user  ",
     email: "  Demo@Example.COM  ",
     password: "  Example-test-password-123!  ",
@@ -60,31 +65,31 @@ test("registration trims identity fields, lowercases email, and preserves the pa
   assert.equal(input.password, "  Example-test-password-123!  ");
 });
 
-test("registration rejects invalid bodies and privilege-related extra fields", () => {
+test("registration rejects invalid bodies and privilege-related extra fields", async () => {
   for (const body of invalidBodies) {
-    assert.throws(() => parseRegistration(body), (error: unknown) => {
-      return error instanceof HttpError && error.statusCode === 400;
-    });
+    await assert.rejects(RequestValidator.validate(RegisterRequestDto, body), ValidationError);
   }
 });
 
-test("registration accepts password and username boundaries without truncation", () => {
+test("registration accepts password and username boundaries without truncation", async () => {
   const input = { ...validInput, username: "a".repeat(50), password: "a".repeat(72) };
-  assert.deepEqual(parseRegistration(input), input);
-  assert.equal(parseRegistration({ ...validInput, password: "😀".repeat(18) }).password, "😀".repeat(18));
-  assert.equal(parseRegistration({ ...validInput, password: "12345678" }).password, "12345678");
+  assert.deepEqual({ ...await RequestValidator.validate(RegisterRequestDto, input) }, input);
+  assert.equal((await RequestValidator.validate(RegisterRequestDto, { ...validInput, password: "😀".repeat(18) })).password, "😀".repeat(18));
+  assert.equal((await RequestValidator.validate(RegisterRequestDto, { ...validInput, password: "12345678" })).password, "12345678");
 });
 
 test("registration uses a new bcrypt salt at cost 12 and passes only the hash to storage", async () => {
-  const saved: NewUser[] = [];
+  const saved: CreateUserModel[] = [];
   const service = new RegistrationService({
-    create: async (user) => { saved.push(user); return publicUser; },
+    create: async (model) => { saved.push(model); return user; },
   });
 
-  await service.register(validInput);
-  await service.register(validInput);
+  const input = await RequestValidator.validate(RegisterRequestDto, validInput);
+  assert.equal(await service.register(input), user);
+  await service.register(input);
   assert.equal(saved.length, 2);
   const first = saved[0]!;
+  assert.ok(first instanceof CreateUserModel);
   const second = saved[1]!;
   assert.equal("password" in first, false);
   assert.notEqual(first.passwordHash, validInput.password);
@@ -93,21 +98,26 @@ test("registration uses a new bcrypt salt at cost 12 and passes only the hash to
   assert.equal(await bcrypt.compare(validInput.password, first.passwordHash), true);
 });
 
-test("invalid registrations reach neither hashing nor the repository", async () => {
-  let writes = 0;
-  const service = new RegistrationService({
-    create: async () => { writes++; return publicUser; },
+test("invalid registrations are rejected before the service is called", async () => {
+  let calls = 0;
+  const app = createApp({
+    ...unusedAuth,
+    checkDatabase: async () => undefined,
+    registration: { register: async () => { calls++; return user; } },
   });
 
-  for (const body of invalidBodies) {
-    await assert.rejects(service.register(body), HttpError);
-  }
-
-  assert.equal(writes, 0);
+  await withServer(app, async (baseUrl) => {
+    for (const body of invalidBodies) {
+      const response = await post(baseUrl, body);
+      assert.equal(response.status, 400);
+      await response.arrayBuffer();
+    }
+  });
+  assert.equal(calls, 0);
 });
 
 test("registration HTTP response is 201 with the original public user contract", async () => {
-  const registration = new RegistrationService({ create: async () => publicUser });
+  const registration = new RegistrationService({ create: async () => user });
   const app = createApp({ ...unusedAuth, checkDatabase: async () => undefined, registration });
 
   await withServer(app, async (baseUrl) => {
@@ -124,7 +134,7 @@ test("registration HTTP response is 201 with the original public user contract",
 test("invalid HTTP requests return 400 without inserting users", async () => {
   let writes = 0;
   const registration = new RegistrationService({
-    create: async () => { writes++; return publicUser; },
+    create: async () => { writes++; return user; },
   });
   const app = createApp({ ...unusedAuth, checkDatabase: async () => undefined, registration });
 
@@ -144,7 +154,7 @@ test("duplicate HTTP requests return a generic conflict response", async () => {
   const app = createApp({
     ...unusedAuth,
     checkDatabase: async () => undefined,
-    registration: { register: async () => { throw new HttpError(409, "Username or email already exists."); } },
+    registration: { register: async () => { throw new ConflictError("Username or email already exists."); } },
   });
 
   await withServer(app, async (baseUrl) => {
@@ -159,7 +169,7 @@ test("malformed and oversized JSON return 400 and 413 without leaking the body",
   const app = createApp({
     ...unusedAuth,
     checkDatabase: async () => undefined,
-    registration: { register: async () => { calls++; return publicUser; } },
+    registration: { register: async () => { calls++; return user; } },
   });
 
   await withServer(app, async (baseUrl) => {
@@ -202,12 +212,12 @@ test("registration is limited to 20 attempts per IP while health remains availab
   const app = createApp({
     ...unusedAuth,
     checkDatabase: async () => undefined,
-    registration: { register: async () => { calls++; throw new HttpError(400, "Invalid request."); } },
+    registration: { register: async () => { calls++; throw new ValidationError("Invalid request."); } },
   });
 
   await withServer(app, async (baseUrl) => {
     for (let attempt = 0; attempt < 20; attempt++) {
-      const response = await post(baseUrl, {});
+      const response = await post(baseUrl, validInput);
       assert.equal(response.status, 400);
       await response.arrayBuffer();
     }

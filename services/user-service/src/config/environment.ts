@@ -1,3 +1,5 @@
+import { ConfigurationError } from "../errors/ApplicationErrors";
+
 type DatabaseConfig = {
   host: string;
   port: number;
@@ -19,7 +21,7 @@ function requireValue(
   const value = environment[name]?.trim();
 
   if (!value) {
-    throw new Error(name + " is required.");
+    throw new ConfigurationError(name + " is required.");
   }
 
   return value;
@@ -39,7 +41,7 @@ function readPort(
   const port = Number(rawValue);
 
   if (!Number.isSafeInteger(port) || port < 1 || port > 65_535) {
-    throw new Error(name + " must be an integer between 1 and 65535.");
+    throw new ConfigurationError(name + " must be an integer between 1 and 65535.");
   }
 
   return port;
@@ -51,7 +53,7 @@ function loadConfig(
   const jwtSecret = requireValue(environment, "JWT_SECRET");
 
   if (Buffer.byteLength(jwtSecret, "utf8") < 32) {
-    throw new Error("JWT_SECRET must contain at least 32 bytes.");
+    throw new ConfigurationError("JWT_SECRET must contain at least 32 bytes.");
   }
 
   return {
