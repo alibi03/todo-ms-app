@@ -1,13 +1,13 @@
 import bcrypt from "bcrypt";
 
 import type User from "../models/domain/User";
-import type { RegisterRequestDto } from "../models/requests/AuthRequests";
-import { CreateUserModel } from "../models/repositories/UserModels";
-import type { UserWriter } from "../ports/RepositoryPorts";
-import type { RegistrationServicePort } from "../ports/ServicePorts";
+import type { RegisterRequestDto } from "../models/dto/requests/RegisterRequestDto";
+import { CreateUserModel } from "../models/domain/CreateUserModel";
+import type { IUserRepository } from "../interfaces/repositories/IUserRepository";
+import type { IRegistrationService } from "../interfaces/services/IRegistrationService";
 
-class RegistrationService implements RegistrationServicePort {
-  constructor(private readonly users: UserWriter) {}
+class RegistrationService implements IRegistrationService {
+  constructor(private readonly users: IUserRepository) {}
 
   async register(input: RegisterRequestDto): Promise<User> {
     const passwordHash = await bcrypt.hash(input.password, 12);

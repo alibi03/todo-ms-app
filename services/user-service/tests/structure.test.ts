@@ -2,17 +2,38 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import createApp from "../src/app";
-import { ValidationError } from "../src/errors/ApplicationErrors";
+import AuthController from "../src/controllers/AuthController";
+import HealthController from "../src/controllers/HealthController";
+import ProfileController from "../src/controllers/ProfileController";
+import { ValidationError } from "../src/errors/ValidationError";
 import UserMapper from "../src/mappers/UserMapper";
 import UserResponseMapper from "../src/mappers/UserResponseMapper";
 import User from "../src/models/domain/User";
 import UserCredentials from "../src/models/domain/UserCredentials";
-import { LoginRequestDto, RegisterRequestDto } from "../src/models/requests/AuthRequests";
+import { LoginRequestDto } from "../src/models/dto/requests/LoginRequestDto";
+import { RegisterRequestDto } from "../src/models/dto/requests/RegisterRequestDto";
 import RequestValidator from "../src/utils/RequestValidator";
 import unusedAuth from "./testAuth";
 import withServer from "./testServer";
 
 const input = { username: "demo", email: "demo@example.com", password: "test-only-password" };
+
+test("controller handlers are regular prototype methods", () => {
+  const auth = new AuthController({ register: async () => { throw new Error("Unused."); } }, unusedAuth.authentication);
+  const profile = new ProfileController(unusedAuth.authentication);
+  const health = new HealthController(async () => undefined, { error: () => undefined });
+  for (const [instance, method] of [[auth, "register"], [auth, "login"], [profile, "getProfile"], [health, "check"]] as const) {
+    assert.equal(Object.hasOwn(instance, method), false);
+    assert.equal(typeof Object.getPrototypeOf(instance)[method], "function");
+  }
+});
+
+test("domain instances retain all explicitly assigned fields", () => {
+  const createdAt = new Date("2026-09-11T12:00:00Z");
+  const user = new User(1, input.username, input.email, "member", createdAt);
+  assert.deepEqual({ ...user }, { id: 1, username: input.username, email: input.email, role: "member", createdAt });
+  assert.deepEqual({ ...new UserCredentials(1, "member", "test-only-hash") }, { id: 1, role: "member", passwordHash: "test-only-hash" });
+});
 
 test("controllers pass transformed DTO instances to services", async () => {
   let registrations = 0;

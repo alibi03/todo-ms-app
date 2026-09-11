@@ -1,4 +1,4 @@
-import { ConfigurationError } from "../errors/ApplicationErrors";
+import { ConfigurationError } from "../errors/ConfigurationError";
 
 type DatabaseConfig = {
   host: string;

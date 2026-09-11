@@ -1,20 +1,7 @@
 import User from "../models/domain/User";
 import UserCredentials from "../models/domain/UserCredentials";
-import type UserRole from "../types/UserRole";
-
-type UserRecord = {
-  id: number;
-  username: string;
-  email: string;
-  role: UserRole;
-  created_at: Date;
-};
-
-type UserCredentialsRecord = {
-  id: number;
-  role: UserRole;
-  password_hash: string;
-};
+import type { UserRecord } from "../models/database/UserRecord";
+import type { UserCredentialsRecord } from "../models/database/UserCredentialsRecord";
 
 class UserMapper {
   static fromDatabase(row: UserRecord): User {
@@ -26,5 +13,4 @@ class UserMapper {
   }
 }
 
-export { type UserCredentialsRecord, type UserRecord };
 export default UserMapper;

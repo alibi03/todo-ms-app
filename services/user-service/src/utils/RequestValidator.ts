@@ -1,7 +1,7 @@
 import { plainToInstance, type ClassConstructor } from "class-transformer";
 import { validate } from "class-validator";
 
-import { ValidationError } from "../errors/ApplicationErrors";
+import { ValidationError } from "../errors/ValidationError";
 
 type RequestDtoClass<T> = ClassConstructor<T> & { readonly extraFieldsMessage: string };
 

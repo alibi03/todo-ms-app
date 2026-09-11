@@ -1,9 +1,9 @@
 import type { RequestHandler } from "express";
 
-import { AuthenticationError } from "../errors/ApplicationErrors";
-import type { TokenServicePort } from "../ports/ServicePorts";
+import { AuthenticationError } from "../errors/AuthenticationError";
+import type { ITokenService } from "../interfaces/services/ITokenService";
 
-function authenticate(tokens: Pick<TokenServicePort, "verify">): RequestHandler {
+function authenticate(tokens: ITokenService): RequestHandler {
   return (request, response, next) => {
     const authorization = request.get("authorization");
     const match = authorization?.match(/^Bearer +(\S+)$/i);

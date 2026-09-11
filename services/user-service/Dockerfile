@@ -5,6 +5,8 @@ RUN npm ci
 
 FROM dependencies AS build
 COPY tsconfig.json ./
+COPY migrations ./migrations
+COPY scripts ./scripts
 COPY src ./src
 COPY tests ./tests
 RUN npm run build

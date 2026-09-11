@@ -1,14 +1,17 @@
 import { DatabaseError } from "pg";
 
 import type UserDatabase from "../database/UserDatabase";
-import { ConflictError, PersistenceError } from "../errors/ApplicationErrors";
-import UserMapper, { type UserCredentialsRecord, type UserRecord } from "../mappers/UserMapper";
+import { ConflictError } from "../errors/ConflictError";
+import { PersistenceError } from "../errors/PersistenceError";
+import UserMapper from "../mappers/UserMapper";
+import { type UserCredentialsRecord } from "../models/database/UserCredentialsRecord";
+import { type UserRecord } from "../models/database/UserRecord";
 import type User from "../models/domain/User";
 import type UserCredentials from "../models/domain/UserCredentials";
-import type { CreateUserModel } from "../models/repositories/UserModels";
-import type { UserReader, UserWriter } from "../ports/RepositoryPorts";
+import type { CreateUserModel } from "../models/domain/CreateUserModel";
+import type { IUserRepository } from "../interfaces/repositories/IUserRepository";
 
-class UserRepository implements UserWriter, UserReader {
+class UserRepository implements IUserRepository {
   constructor(private readonly database: Pick<UserDatabase, "query">) {}
 
   async findByEmail(email: string): Promise<UserCredentials | null> {

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 
-import { AuthenticationError } from "../src/errors/ApplicationErrors";
+import { AuthenticationError } from "../src/errors/AuthenticationError";
 import AuthenticatedUser from "../src/models/domain/AuthenticatedUser";
 import TokenService from "../src/services/TokenService";
 

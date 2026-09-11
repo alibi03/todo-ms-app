@@ -4,16 +4,18 @@ import AuthController from "./controllers/AuthController";
 import HealthController from "./controllers/HealthController";
 import ProfileController from "./controllers/ProfileController";
 import createErrorHandler from "./middleware/errorHandler";
-import type { AuthenticationServicePort, RegistrationServicePort, TokenServicePort } from "./ports/ServicePorts";
+import type { IAuthenticationService } from "./interfaces/services/IAuthenticationService";
+import type { IRegistrationService } from "./interfaces/services/IRegistrationService";
+import type { ITokenService } from "./interfaces/services/ITokenService";
 import createAuthRouter from "./routes/authRoutes";
 import createProfileRouter from "./routes/profileRoutes";
 import type AppLogger from "./types/AppLogger";
 
 type AppDependencies = {
   checkDatabase: () => Promise<void>;
-  registration: RegistrationServicePort;
-  authentication: AuthenticationServicePort;
-  tokens: Pick<TokenServicePort, "verify">;
+  registration: IRegistrationService;
+  authentication: IAuthenticationService;
+  tokens: ITokenService;
 };
 
 function createApp(
@@ -39,7 +41,7 @@ function createApp(
     });
   });
 
-  app.get("/api/health", healthController.check);
+  app.get("/api/health", healthController.check.bind(healthController));
   app.use("/api/auth", createAuthRouter(authController));
   app.use("/api/profile", createProfileRouter(profileController, tokens));
 

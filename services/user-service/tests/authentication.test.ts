@@ -4,15 +4,16 @@ import bcrypt from "bcrypt";
 
 import createApp from "../src/app";
 import AuthenticationService from "../src/services/AuthenticationService";
-import { AuthenticationError } from "../src/errors/ApplicationErrors";
+import { AuthenticationError } from "../src/errors/AuthenticationError";
 import User from "../src/models/domain/User";
 import type UserCredentials from "../src/models/domain/UserCredentials";
 import UserResponseMapper from "../src/mappers/UserResponseMapper";
-import { LoginRequestDto } from "../src/models/requests/AuthRequests";
+import { LoginRequestDto } from "../src/models/dto/requests/LoginRequestDto";
 import RequestValidator from "../src/utils/RequestValidator";
 import TokenService from "../src/services/TokenService";
-import type { UserReader } from "../src/ports/RepositoryPorts";
+import type { IUserRepository } from "../src/interfaces/repositories/IUserRepository";
 import unusedAuth from "./testAuth";
+import unusedRepository from "./testRepository";
 import withServer from "./testServer";
 
 const input = { email: "demo@example.com", password: "  Example-test-password-123!  " };
@@ -53,9 +54,9 @@ test("login normalizes email but does not trim or impose a new minimum on passwo
 
 test("invalid login bodies never reach storage or token creation", async () => {
   let reads = 0;
-  const authentication = new AuthenticationService({
+  const authentication = new AuthenticationService({ ...unusedRepository,
     findByEmail: async () => { reads++; return null; }, findById: async () => null,
-  }, { create: () => { throw new Error("Unexpected token creation."); } }, await dummyHash);
+  }, { ...unusedAuth.tokens, create: () => { throw new Error("Unexpected token creation."); } }, await dummyHash);
 
   await withServer(makeApp(authentication), async (baseUrl) => {
     for (const body of invalidBodies) {
@@ -68,7 +69,8 @@ test("invalid login bodies never reach storage or token creation", async () => {
 });
 
 test("login checks bcrypt and returns only a signed token", async () => {
-  const users: UserReader = {
+  const users: IUserRepository = {
+    ...unusedRepository,
     findByEmail: async (email) => {
       assert.equal(email, input.email);
       return { id: user.id, role: user.role, passwordHash: await passwordHash };
@@ -91,9 +93,9 @@ test("login checks bcrypt and returns only a signed token", async () => {
 test("wrong password and unknown email return the same 401 and never issue tokens", async () => {
   let stored: UserCredentials | null = { id: user.id, role: user.role, passwordHash: await passwordHash };
   let issued = 0;
-  const authentication = new AuthenticationService({
+  const authentication = new AuthenticationService({ ...unusedRepository,
     findByEmail: async () => stored, findById: async () => user,
-  }, { create: () => { issued++; return "unexpected"; } }, await dummyHash);
+  }, { ...unusedAuth.tokens, create: () => { issued++; return "unexpected"; } }, await dummyHash);
 
   await withServer(makeApp(authentication), async (baseUrl) => {
     for (const missing of [false, true]) {
@@ -109,7 +111,7 @@ test("wrong password and unknown email return the same 401 and never issue token
 
 test("profile uses the verified subject and returns current database fields", async () => {
   const current = { ...user, username: "updated", role: "admin" as const };
-  const authentication = new AuthenticationService({
+  const authentication = new AuthenticationService({ ...unusedRepository,
     findByEmail: async () => null,
     findById: async (id) => { assert.equal(id, user.id); return current; },
   }, tokens, await dummyHash);
@@ -145,7 +147,7 @@ test("missing, malformed and tampered credentials cannot read a profile", async 
 });
 
 test("a deleted user's token no longer loads a profile", async () => {
-  const authentication = new AuthenticationService({
+  const authentication = new AuthenticationService({ ...unusedRepository,
     findByEmail: async () => null, findById: async () => null,
   }, tokens, await dummyHash);
 

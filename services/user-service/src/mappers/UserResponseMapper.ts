@@ -1,5 +1,5 @@
 import type User from "../models/domain/User";
-import type { PublicUserResponse } from "../models/responses/UserResponses";
+import type { PublicUserResponse } from "../models/dto/responses/PublicUserResponse";
 
 class UserResponseMapper {
   static toPublicResponse(user: User): PublicUserResponse {

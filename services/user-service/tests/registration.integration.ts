@@ -9,7 +9,7 @@ import { loadConfig } from "../src/config/environment";
 import UserDatabase from "../src/database/UserDatabase";
 import RegistrationService from "../src/services/RegistrationService";
 import UserRepository from "../src/repositories/UserRepository";
-import type { PublicUserResponse } from "../src/models/responses/UserResponses";
+import type { PublicUserResponse } from "../src/models/dto/responses/PublicUserResponse";
 import withServer from "./testServer";
 import unusedAuth from "./testAuth";
 
@@ -25,7 +25,7 @@ test("registration works with a fresh PostgreSQL database", async (t) => {
       const tables = await database.query<{ tablename: string }>(
         "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename"
       );
-      assert.deepEqual(tables.rows.map((row) => row.tablename), ["password_reset_codes", "schema_migrations", "users"]);
+      assert.deepEqual(tables.rows.map((row) => row.tablename), ["password_reset_codes", "pgmigrations", "schema_migrations", "users"]);
       const migrations = await database.query<{ name: string }>("SELECT name FROM schema_migrations");
       assert.deepEqual(migrations.rows, [{ name: "001_initial_user_schema" }]);
     });

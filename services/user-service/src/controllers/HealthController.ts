@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 
-import type { HealthResponse } from "../models/responses/ServiceResponses";
+import type { HealthResponse } from "../models/dto/responses/HealthResponse";
 import type AppLogger from "../types/AppLogger";
 
 class HealthController {
@@ -9,7 +9,7 @@ class HealthController {
     private readonly logger: AppLogger
   ) {}
 
-  readonly check = async (_request: Request, response: Response<HealthResponse>): Promise<void> => {
+  async check(_request: Request, response: Response<HealthResponse>): Promise<void> {
     try {
       await this.checkDatabase();
       response.json({
@@ -25,7 +25,7 @@ class HealthController {
         dependencies: { database: "down" },
       });
     }
-  };
+  }
 }
 
 export default HealthController;

@@ -2,14 +2,14 @@ import { Router } from "express";
 
 import type ProfileController from "../controllers/ProfileController";
 import authenticate from "../middleware/authenticate";
-import type { TokenServicePort } from "../ports/ServicePorts";
+import type { ITokenService } from "../interfaces/services/ITokenService";
 
 function createProfileRouter(
   controller: ProfileController,
-  tokens: Pick<TokenServicePort, "verify">
+  tokens: ITokenService
 ): Router {
   const router = Router();
-  router.get("/", authenticate(tokens), controller.getProfile);
+  router.get("/", authenticate(tokens), controller.getProfile.bind(controller));
   return router;
 }
 

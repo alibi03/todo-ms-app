@@ -3,15 +3,17 @@ import test from "node:test";
 import bcrypt from "bcrypt";
 
 import createApp from "../src/app";
-import { ConflictError, ValidationError } from "../src/errors/ApplicationErrors";
+import { ConflictError } from "../src/errors/ConflictError";
+import { ValidationError } from "../src/errors/ValidationError";
 import User from "../src/models/domain/User";
-import { RegisterRequestDto } from "../src/models/requests/AuthRequests";
-import { CreateUserModel } from "../src/models/repositories/UserModels";
-import type { PublicUserResponse } from "../src/models/responses/UserResponses";
+import { RegisterRequestDto } from "../src/models/dto/requests/RegisterRequestDto";
+import { CreateUserModel } from "../src/models/domain/CreateUserModel";
+import type { PublicUserResponse } from "../src/models/dto/responses/PublicUserResponse";
 import RegistrationService from "../src/services/RegistrationService";
 import RequestValidator from "../src/utils/RequestValidator";
 import withServer from "./testServer";
 import unusedAuth from "./testAuth";
+import unusedRepository from "./testRepository";
 
 const validInput = {
   username: "demo_user",
@@ -80,7 +82,7 @@ test("registration accepts password and username boundaries without truncation",
 
 test("registration uses a new bcrypt salt at cost 12 and passes only the hash to storage", async () => {
   const saved: CreateUserModel[] = [];
-  const service = new RegistrationService({
+  const service = new RegistrationService({ ...unusedRepository,
     create: async (model) => { saved.push(model); return user; },
   });
 
@@ -117,7 +119,7 @@ test("invalid registrations are rejected before the service is called", async ()
 });
 
 test("registration HTTP response is 201 with the original public user contract", async () => {
-  const registration = new RegistrationService({ create: async () => user });
+  const registration = new RegistrationService({ ...unusedRepository, create: async () => user });
   const app = createApp({ ...unusedAuth, checkDatabase: async () => undefined, registration });
 
   await withServer(app, async (baseUrl) => {
@@ -133,7 +135,7 @@ test("registration HTTP response is 201 with the original public user contract",
 
 test("invalid HTTP requests return 400 without inserting users", async () => {
   let writes = 0;
-  const registration = new RegistrationService({
+  const registration = new RegistrationService({ ...unusedRepository,
     create: async () => { writes++; return user; },
   });
   const app = createApp({ ...unusedAuth, checkDatabase: async () => undefined, registration });

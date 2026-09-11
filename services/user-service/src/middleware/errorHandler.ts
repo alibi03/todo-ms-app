@@ -1,6 +1,8 @@
 import type { ErrorRequestHandler } from "express";
 
-import { AuthenticationError, ConflictError, ValidationError } from "../errors/ApplicationErrors";
+import { AuthenticationError } from "../errors/AuthenticationError";
+import { ConflictError } from "../errors/ConflictError";
+import { ValidationError } from "../errors/ValidationError";
 import type AppLogger from "../types/AppLogger";
 
 function createErrorHandler(logger: AppLogger): ErrorRequestHandler {

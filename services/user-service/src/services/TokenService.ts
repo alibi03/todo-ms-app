@@ -1,14 +1,14 @@
 import jwt from "jsonwebtoken";
 
-import { AuthenticationError } from "../errors/ApplicationErrors";
+import { AuthenticationError } from "../errors/AuthenticationError";
 import AuthenticatedUser from "../models/domain/AuthenticatedUser";
-import type { TokenServicePort } from "../ports/ServicePorts";
+import type { ITokenService } from "../interfaces/services/ITokenService";
 
 const issuer = "staj-user-service";
 const audience = "staj-apis";
 const lifetimeSeconds = 60 * 60;
 
-class TokenService implements TokenServicePort {
+class TokenService implements ITokenService {
   constructor(private readonly secret: string) {}
 
   create(user: AuthenticatedUser): string {

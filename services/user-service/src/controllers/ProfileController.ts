@@ -1,20 +1,20 @@
 import type { Request, Response } from "express";
 
 import UserResponseMapper from "../mappers/UserResponseMapper";
-import type { ProfileResponse } from "../models/responses/AuthResponses";
-import type { AuthenticationServicePort } from "../ports/ServicePorts";
+import type { ProfileResponse } from "../models/dto/responses/ProfileResponse";
+import type { IAuthenticationService } from "../interfaces/services/IAuthenticationService";
 import type AuthenticatedLocals from "../types/AuthenticatedLocals";
 
 class ProfileController {
-  constructor(private readonly authentication: Pick<AuthenticationServicePort, "getProfile">) {}
+  constructor(private readonly authentication: IAuthenticationService) {}
 
-  readonly getProfile = async (
+  async getProfile(
     _request: Request,
     response: Response<ProfileResponse, AuthenticatedLocals>
-  ): Promise<void> => {
+  ): Promise<void> {
     const user = await this.authentication.getProfile(response.locals.userId);
     response.json({ user: UserResponseMapper.toPublicResponse(user) });
-  };
+  }
 }
 
 export default ProfileController;

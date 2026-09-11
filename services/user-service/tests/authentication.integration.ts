@@ -12,7 +12,7 @@ import UserDatabase from "../src/database/UserDatabase";
 import RegistrationService from "../src/services/RegistrationService";
 import TokenService from "../src/services/TokenService";
 import UserRepository from "../src/repositories/UserRepository";
-import type { PublicUserResponse } from "../src/models/responses/UserResponses";
+import type { PublicUserResponse } from "../src/models/dto/responses/PublicUserResponse";
 import User from "../src/models/domain/User";
 import UserCredentials from "../src/models/domain/UserCredentials";
 import withServer from "./testServer";

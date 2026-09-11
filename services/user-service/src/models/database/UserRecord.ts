@@ -1,11 +1,11 @@
 import type UserRole from "../../types/UserRole";
 
-interface PublicUserResponse {
+type UserRecord = {
   id: number;
   username: string;
   email: string;
   role: UserRole;
-  created_at: string;
-}
+  created_at: Date;
+};
 
-export { type PublicUserResponse };
+export { type UserRecord };

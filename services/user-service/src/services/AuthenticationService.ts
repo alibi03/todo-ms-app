@@ -1,17 +1,18 @@
 import bcrypt from "bcrypt";
 
-import { AuthenticationError } from "../errors/ApplicationErrors";
+import { AuthenticationError } from "../errors/AuthenticationError";
 import AuthenticatedUser from "../models/domain/AuthenticatedUser";
 import type User from "../models/domain/User";
-import type { LoginRequestDto } from "../models/requests/AuthRequests";
-import { LoginResult } from "../models/results/AuthResults";
-import type { UserReader } from "../ports/RepositoryPorts";
-import type { AuthenticationServicePort, TokenServicePort } from "../ports/ServicePorts";
+import type { LoginRequestDto } from "../models/dto/requests/LoginRequestDto";
+import { LoginResult } from "../models/dto/results/LoginResult";
+import type { IUserRepository } from "../interfaces/repositories/IUserRepository";
+import type { IAuthenticationService } from "../interfaces/services/IAuthenticationService";
+import type { ITokenService } from "../interfaces/services/ITokenService";
 
-class AuthenticationService implements AuthenticationServicePort {
+class AuthenticationService implements IAuthenticationService {
   constructor(
-    private readonly users: UserReader,
-    private readonly tokens: Pick<TokenServicePort, "create">,
+    private readonly users: IUserRepository,
+    private readonly tokens: ITokenService,
     private readonly dummyPasswordHash: string
   ) {}
 
