@@ -1,8 +1,10 @@
+import type { TaskStatus } from "../../../types/TaskStatus";
+
 interface TaskResponse {
   id: number;
   title: string;
   description: string;
-  status: "pending";
+  status: TaskStatus;
   ownerUserId: number;
   createdAt: string;
 }

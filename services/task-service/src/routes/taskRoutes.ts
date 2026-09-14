@@ -13,6 +13,8 @@ function createTaskRouter(controller: TaskController, users: IUserServiceClient)
   router.use(authenticate(users));
   router.post("/", controller.create.bind(controller));
   router.get("/", controller.list.bind(controller));
+  router.patch("/:id", controller.update.bind(controller));
+  router.delete("/:id", controller.delete.bind(controller));
   return router;
 }
 

@@ -1,12 +1,14 @@
+import type { TaskStatus } from "../../types/TaskStatus";
+
 class Task {
   readonly id: number;
   readonly title: string;
   readonly description: string;
-  readonly status: "pending";
+  readonly status: TaskStatus;
   readonly ownerUserId: number;
   readonly createdAt: Date;
 
-  constructor(id: number, title: string, description: string, status: "pending", ownerUserId: number, createdAt: Date) {
+  constructor(id: number, title: string, description: string, status: TaskStatus, ownerUserId: number, createdAt: Date) {
     this.id = id;
     this.title = title;
     this.description = description;

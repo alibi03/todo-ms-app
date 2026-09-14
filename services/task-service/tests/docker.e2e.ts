@@ -70,4 +70,49 @@ test("real User and Task services communicate across Docker", async context => {
     assert.equal(next.tasks[0].title, "Alice second");
     assert.equal(next.nextCursor, null);
   });
+  async function change(token: string, id: number, method: "PATCH" | "DELETE", body?: unknown) {
+    return fetch(taskUrl + "/api/tasks/" + String(id), {
+      method, headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    });
+  }
+  await context.test("owner can edit a task and see the persisted changes", async () => {
+    const original = (await list(alice.token)).tasks[0];
+    const response = await change(alice.token, original.id, "PATCH", { title: "Edited task", status: "completed" });
+    assert.equal(response.status, 200);
+    const updated = (await response.json()).task;
+    assert.equal(updated.title, "Edited task");
+    assert.equal(updated.status, "completed");
+    assert.equal(updated.createdAt, original.createdAt);
+    assert.equal(updated.ownerUserId, alice.id);
+    assert.equal((await list(alice.token)).tasks[0].status, "completed");
+  });
+  await context.test("another user's task cannot be edited or deleted", async () => {
+    const task = (await list(bob.token)).tasks[0];
+    for (const method of ["PATCH", "DELETE"] as const) {
+      const response = await change(alice.token, task.id, method, method === "PATCH" ? { title: "Forbidden" } : undefined);
+      assert.equal(response.status, 404);
+      assert.deepEqual(await response.json(), { message: "Task not found." });
+    }
+    assert.deepEqual((await list(bob.token)).tasks, [task]);
+  });
+  await context.test("invalid patch fields and bad credentials cannot change a task", async () => {
+    const task = (await list(alice.token)).tasks[0];
+    for (const body of [{}, { status: "archived" }, { title: null }, { ownerUserId: bob.id }]) {
+      assert.equal((await change(alice.token, task.id, "PATCH", body)).status, 400);
+    }
+    assert.equal((await change("invalid", task.id, "PATCH", { title: "Forbidden" })).status, 401);
+    assert.equal((await change("invalid", task.id, "DELETE")).status, 401);
+    assert.deepEqual((await list(alice.token)).tasks[0], task);
+  });
+  await context.test("owner deletion persists and repeated mutations return 404", async () => {
+    const task = (await list(alice.token)).tasks[0];
+    const response = await change(alice.token, task.id, "DELETE");
+    assert.equal(response.status, 204);
+    assert.equal(await response.text(), "");
+    assert.equal((await list(alice.token)).tasks.some((row: { id: number }) => row.id === task.id), false);
+    assert.equal((await change(alice.token, task.id, "DELETE")).status, 404);
+    assert.equal((await change(alice.token, task.id, "PATCH", { title: "Gone" })).status, 404);
+    assert.equal((await list(bob.token)).tasks.length, 1);
+  });
 });

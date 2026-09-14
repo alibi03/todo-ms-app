@@ -4,6 +4,7 @@ import TaskMapper from "../mappers/TaskMapper";
 import type { TaskRecord } from "../models/database/TaskRecord";
 import type CreateTaskModel from "../models/domain/CreateTaskModel";
 import type Task from "../models/domain/Task";
+import type UpdateTaskModel from "../models/domain/UpdateTaskModel";
 
 class TaskRepository implements ITaskRepository {
   constructor(private readonly database: Pick<TaskDatabase, "query">) {}
@@ -26,6 +27,26 @@ class TaskRepository implements ITaskRepository {
       [ownerUserId, after, limit]
     );
     return result.rows.map(TaskMapper.toDomain);
+  }
+
+  async updateByOwner(id: number, ownerUserId: number, input: UpdateTaskModel): Promise<Task | null> {
+    const result = await this.database.query<TaskRecord>(
+      `UPDATE tasks SET title = COALESCE($3, title), description = COALESCE($4, description),
+       status = COALESCE($5, status)
+       WHERE id = $1 AND owner_user_id = $2
+       RETURNING id, title, description, status, owner_user_id, created_at`,
+      [id, ownerUserId, input.title ?? null, input.description ?? null, input.status ?? null]
+    );
+    const row = result.rows[0];
+    return row ? TaskMapper.toDomain(row) : null;
+  }
+
+  async deleteByOwner(id: number, ownerUserId: number): Promise<boolean> {
+    const result = await this.database.query(
+      "DELETE FROM tasks WHERE id = $1 AND owner_user_id = $2",
+      [id, ownerUserId]
+    );
+    return result.rowCount === 1;
   }
 }
 

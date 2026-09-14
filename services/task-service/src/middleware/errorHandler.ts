@@ -2,12 +2,14 @@ import type { ErrorRequestHandler } from "express";
 import { AuthenticationError } from "../errors/AuthenticationError";
 import { DependencyUnavailableError } from "../errors/DependencyUnavailableError";
 import { ValidationError } from "../errors/ValidationError";
+import { NotFoundError } from "../errors/NotFoundError";
 import type AppLogger from "../types/AppLogger";
 
 function createErrorHandler(logger: AppLogger): ErrorRequestHandler {
   return (error: unknown, _request, response, _next) => {
     const status = error instanceof AuthenticationError ? 401
       : error instanceof ValidationError ? 400
+      : error instanceof NotFoundError ? 404
       : error instanceof DependencyUnavailableError ? 503 : undefined;
     if (status !== undefined && error instanceof Error) {
       if (status === 401) response.set("WWW-Authenticate", "Bearer");
