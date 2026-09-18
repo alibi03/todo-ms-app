@@ -1,4 +1,4 @@
-class CreateUserModel {
+export class CreateUserModel {
   readonly username: string;
   readonly email: string;
   readonly passwordHash: string;
@@ -13,5 +13,3 @@ class CreateUserModel {
     this.passwordHash = passwordHash;
   }
 }
-
-export { CreateUserModel };

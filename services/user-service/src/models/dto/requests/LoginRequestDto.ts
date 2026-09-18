@@ -3,10 +3,10 @@ import "reflect-metadata";
 import { Transform } from "class-transformer";
 import { IsEmail, IsNotEmpty, IsString, MaxLength } from "class-validator";
 
-import StringTransformer from "../../../utils/StringTransformer";
+import { StringTransformer } from "../../../utils/StringTransformer";
 import { MaxUtf8Bytes } from "../../../utils/ValidationDecorators";
 
-class LoginRequestDto {
+export class LoginRequestDto {
   static readonly extraFieldsMessage = "Only email and password are allowed.";
 
   @Transform(StringTransformer.normalizeEmail)
@@ -20,5 +20,3 @@ class LoginRequestDto {
   @IsString({ message: "Password is required." })
   declare password: string;
 }
-
-export { LoginRequestDto };

@@ -2,10 +2,10 @@ import "dotenv/config";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { loadConfig } from "../src/config/environment";
-import TaskDatabase from "../src/database/TaskDatabase";
-import Task from "../src/models/domain/Task";
-import TaskRepository from "../src/repositories/TaskRepository";
-import TaskService from "../src/services/TaskService";
+import { TaskDatabase } from "../src/database/TaskDatabase";
+import { Task } from "../src/models/domain/Task";
+import { TaskRepository } from "../src/repositories/TaskRepository";
+import { TaskService } from "../src/services/TaskService";
 
 test("task storage and migrations in a disposable database", async context => {
   const config = loadConfig();

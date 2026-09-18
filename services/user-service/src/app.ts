@@ -1,8 +1,8 @@
 import express, { type Express } from "express";
 
-import AuthController from "./controllers/AuthController";
-import HealthController from "./controllers/HealthController";
-import ProfileController from "./controllers/ProfileController";
+import { AuthController } from "./controllers/AuthController";
+import { HealthController } from "./controllers/HealthController";
+import { ProfileController } from "./controllers/ProfileController";
 import createErrorHandler from "./middleware/errorHandler";
 import type { IAuthenticationService } from "./interfaces/services/IAuthenticationService";
 import type { IRegistrationService } from "./interfaces/services/IRegistrationService";

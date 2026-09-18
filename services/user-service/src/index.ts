@@ -6,11 +6,11 @@ import bcrypt from "bcrypt";
 
 import createApp from "./app";
 import { loadConfig } from "./config/environment";
-import UserDatabase from "./database/UserDatabase";
-import UserRepository from "./repositories/UserRepository";
-import AuthenticationService from "./services/AuthenticationService";
-import RegistrationService from "./services/RegistrationService";
-import TokenService from "./services/TokenService";
+import { UserDatabase } from "./database/UserDatabase";
+import { UserRepository } from "./repositories/UserRepository";
+import { AuthenticationService } from "./services/AuthenticationService";
+import { RegistrationService } from "./services/RegistrationService";
+import { TokenService } from "./services/TokenService";
 
 async function listen(server: Server): Promise<void> {
   await new Promise<void>((resolve, reject) => {

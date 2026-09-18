@@ -1,6 +1,6 @@
 import type UserRole from "../../types/UserRole";
 
-class User {
+export class User {
   readonly id: number;
   readonly username: string;
   readonly email: string;
@@ -21,5 +21,3 @@ class User {
     this.createdAt = createdAt;
   }
 }
-
-export default User;

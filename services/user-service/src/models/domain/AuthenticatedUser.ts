@@ -1,6 +1,6 @@
 import type UserRole from "../../types/UserRole";
 
-class AuthenticatedUser {
+export class AuthenticatedUser {
   readonly id: number;
   readonly role: UserRole;
 
@@ -12,5 +12,3 @@ class AuthenticatedUser {
     this.role = role;
   }
 }
-
-export default AuthenticatedUser;

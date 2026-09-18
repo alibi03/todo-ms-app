@@ -2,19 +2,19 @@ import { ValidationError } from "../errors/ValidationError";
 import { NotFoundError } from "../errors/NotFoundError";
 import type { ITaskRepository } from "../interfaces/repositories/ITaskRepository";
 import type { ITaskService } from "../interfaces/services/ITaskService";
-import CreateTaskModel from "../models/domain/CreateTaskModel";
-import type Task from "../models/domain/Task";
+import { CreateTaskModel } from "../models/domain/CreateTaskModel";
+import type { Task } from "../models/domain/Task";
 import type { CreateTaskRequestDto } from "../models/dto/requests/CreateTaskRequestDto";
 import type { ListTasksQueryDto } from "../models/dto/requests/ListTasksQueryDto";
 import type { TaskPage } from "../models/dto/results/TaskPage";
-import UpdateTaskModel from "../models/domain/UpdateTaskModel";
+import { UpdateTaskModel } from "../models/domain/UpdateTaskModel";
 import type { UpdateTaskRequestDto } from "../models/dto/requests/UpdateTaskRequestDto";
 
-class TaskService implements ITaskService {
-  constructor(private readonly tasks: ITaskRepository) {}
+export class TaskService implements ITaskService {
+  constructor(private readonly taskRepository: ITaskRepository) {}
 
   async create(ownerUserId: number, input: CreateTaskRequestDto): Promise<Task> {
-    return this.tasks.create(new CreateTaskModel(input.title, input.description ?? "", ownerUserId));
+    return this.taskRepository.create(new CreateTaskModel(input.title, input.description ?? "", ownerUserId));
   }
 
   async list(ownerUserId: number, query: ListTasksQueryDto): Promise<TaskPage> {
@@ -26,7 +26,7 @@ class TaskService implements ITaskService {
     if (!Number.isSafeInteger(after) || after < 0 || after > 2147483647) {
       throw new ValidationError("After must be a valid task ID.");
     }
-    const rows = await this.tasks.listByOwner(ownerUserId, after, limit + 1);
+    const rows = await this.taskRepository.listByOwner(ownerUserId, after, limit + 1);
     const tasks = rows.slice(0, limit);
     return { tasks, nextCursor: rows.length > limit ? tasks.at(-1)?.id ?? null : null };
   }
@@ -36,7 +36,7 @@ class TaskService implements ITaskService {
     if (input.title === undefined && input.description === undefined && input.status === undefined) {
       throw new ValidationError("Provide at least one field to update.");
     }
-    const task = await this.tasks.updateByOwner(
+    const task = await this.taskRepository.updateByOwner(
       id, ownerUserId, new UpdateTaskModel(input.title, input.description, input.status)
     );
     if (!task) throw new NotFoundError("Task not found.");
@@ -45,7 +45,7 @@ class TaskService implements ITaskService {
 
   async delete(ownerUserId: number, id: number): Promise<void> {
     this.validateId(id);
-    if (!await this.tasks.deleteByOwner(id, ownerUserId)) {
+    if (!await this.taskRepository.deleteByOwner(id, ownerUserId)) {
       throw new NotFoundError("Task not found.");
     }
   }
@@ -56,5 +56,3 @@ class TaskService implements ITaskService {
     }
   }
 }
-
-export default TaskService;

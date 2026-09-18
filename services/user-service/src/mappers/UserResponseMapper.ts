@@ -1,7 +1,7 @@
-import type User from "../models/domain/User";
+import type { User } from "../models/domain/User";
 import type { PublicUserResponse } from "../models/dto/responses/PublicUserResponse";
 
-class UserResponseMapper {
+export class UserResponseMapper {
   static toPublicResponse(user: User): PublicUserResponse {
     return {
       id: user.id,
@@ -12,5 +12,3 @@ class UserResponseMapper {
     };
   }
 }
-
-export default UserResponseMapper;

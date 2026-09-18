@@ -1,9 +1,9 @@
 import { Pool, type QueryResult, type QueryResultRow } from "pg";
 
 import type { DatabaseConfig } from "../config/environment";
-import MigrationRunner from "./MigrationRunner";
+import { MigrationRunner } from "./MigrationRunner";
 
-class UserDatabase {
+export class UserDatabase {
   private readonly pool: Pool;
 
   constructor(config: DatabaseConfig) {
@@ -43,5 +43,3 @@ class UserDatabase {
     await this.pool.end();
   }
 }
-
-export default UserDatabase;

@@ -6,15 +6,15 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 import createApp from "../src/app";
-import AuthenticationService from "../src/services/AuthenticationService";
+import { AuthenticationService } from "../src/services/AuthenticationService";
 import { loadConfig } from "../src/config/environment";
-import UserDatabase from "../src/database/UserDatabase";
-import RegistrationService from "../src/services/RegistrationService";
-import TokenService from "../src/services/TokenService";
-import UserRepository from "../src/repositories/UserRepository";
+import { UserDatabase } from "../src/database/UserDatabase";
+import { RegistrationService } from "../src/services/RegistrationService";
+import { TokenService } from "../src/services/TokenService";
+import { UserRepository } from "../src/repositories/UserRepository";
 import type { PublicUserResponse } from "../src/models/dto/responses/PublicUserResponse";
-import User from "../src/models/domain/User";
-import UserCredentials from "../src/models/domain/UserCredentials";
+import { User } from "../src/models/domain/User";
+import { UserCredentials } from "../src/models/domain/UserCredentials";
 import withServer from "./testServer";
 
 test("login and profile work with PostgreSQL", async (t) => {

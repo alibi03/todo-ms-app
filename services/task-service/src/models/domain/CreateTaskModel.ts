@@ -1,4 +1,4 @@
-class CreateTaskModel {
+export class CreateTaskModel {
   readonly title: string;
   readonly description: string;
   readonly ownerUserId: number;
@@ -9,5 +9,3 @@ class CreateTaskModel {
     this.ownerUserId = ownerUserId;
   }
 }
-
-export default CreateTaskModel;

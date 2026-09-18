@@ -1,11 +1,11 @@
 import "dotenv/config";
 import { once } from "node:events";
 import createApp from "./app";
-import UserServiceClient from "./clients/UserServiceClient";
+import { UserServiceClient } from "./clients/UserServiceClient";
 import { loadConfig } from "./config/environment";
-import TaskDatabase from "./database/TaskDatabase";
-import TaskRepository from "./repositories/TaskRepository";
-import TaskService from "./services/TaskService";
+import { TaskDatabase } from "./database/TaskDatabase";
+import { TaskRepository } from "./repositories/TaskRepository";
+import { TaskService } from "./services/TaskService";
 
 async function main(): Promise<void> {
   const config = loadConfig();

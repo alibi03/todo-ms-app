@@ -1,7 +1,7 @@
-import type Task from "../models/domain/Task";
+import type { Task } from "../models/domain/Task";
 import type { TaskResponse } from "../models/dto/responses/TaskResponse";
 
-class TaskResponseMapper {
+export class TaskResponseMapper {
   static toResponse(task: Task): TaskResponse {
     return {
       id: task.id, title: task.title, description: task.description,
@@ -9,5 +9,3 @@ class TaskResponseMapper {
     };
   }
 }
-
-export default TaskResponseMapper;

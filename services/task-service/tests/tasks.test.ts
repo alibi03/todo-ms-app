@@ -1,16 +1,16 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import createApp from "../src/app";
-import TaskController from "../src/controllers/TaskController";
+import { TaskController } from "../src/controllers/TaskController";
 import { AuthenticationError } from "../src/errors/AuthenticationError";
 import { DependencyUnavailableError } from "../src/errors/DependencyUnavailableError";
 import type { ITaskRepository } from "../src/interfaces/repositories/ITaskRepository";
 import type { IUserServiceClient } from "../src/interfaces/services/IUserServiceClient";
-import Task from "../src/models/domain/Task";
+import { Task } from "../src/models/domain/Task";
 import { CreateTaskRequestDto } from "../src/models/dto/requests/CreateTaskRequestDto";
-import TaskResponseMapper from "../src/mappers/TaskResponseMapper";
-import TaskService from "../src/services/TaskService";
-import RequestValidator from "../src/utils/RequestValidator";
+import { TaskResponseMapper } from "../src/mappers/TaskResponseMapper";
+import { TaskService } from "../src/services/TaskService";
+import { RequestValidator } from "../src/utils/RequestValidator";
 import withServer from "./testServer";
 
 function fixture(users?: IUserServiceClient) {
@@ -19,7 +19,7 @@ function fixture(users?: IUserServiceClient) {
   const logs: unknown[][] = [];
   const repository: ITaskRepository = {
     async create(input) {
-      const task = new Task(nextId++, input.title, input.description, "pending", input.ownerUserId, new Date());
+      const task = new Task({ ...input, id: nextId++, status: "pending", createdAt: new Date() });
       rows.push(task);
       return task;
     },
@@ -30,8 +30,10 @@ function fixture(users?: IUserServiceClient) {
       const index = rows.findIndex(row => row.id === id && row.ownerUserId === owner);
       const row = rows[index];
       if (!row) return null;
-      const updated = new Task(row.id, input.title ?? row.title, input.description ?? row.description,
-        input.status ?? row.status, row.ownerUserId, row.createdAt);
+      const updated = new Task({
+        ...row, title: input.title ?? row.title, description: input.description ?? row.description,
+        status: input.status ?? row.status,
+      });
       rows[index] = updated;
       return updated;
     },
@@ -215,7 +217,9 @@ test("controllers use normal methods and response mapping excludes extra fields"
   const controller = new TaskController(new TaskService(fixture().repository));
   assert.equal(Object.hasOwn(controller, "create"), false);
   assert.equal(Object.hasOwn(controller, "list"), false);
-  const task = Object.assign(new Task(1, "Task", "", "pending", 1, new Date()), { passwordHash: "private" });
+  const task = Object.assign(new Task({
+    id: 1, title: "Task", description: "", status: "pending", ownerUserId: 1, createdAt: new Date(),
+  }), { passwordHash: "private" });
   assert.equal("passwordHash" in TaskResponseMapper.toResponse(task), false);
 });
 

@@ -6,9 +6,9 @@ import bcrypt from "bcrypt";
 
 import createApp from "../src/app";
 import { loadConfig } from "../src/config/environment";
-import UserDatabase from "../src/database/UserDatabase";
-import RegistrationService from "../src/services/RegistrationService";
-import UserRepository from "../src/repositories/UserRepository";
+import { UserDatabase } from "../src/database/UserDatabase";
+import { RegistrationService } from "../src/services/RegistrationService";
+import { UserRepository } from "../src/repositories/UserRepository";
 import type { PublicUserResponse } from "../src/models/dto/responses/PublicUserResponse";
 import withServer from "./testServer";
 import unusedAuth from "./testAuth";

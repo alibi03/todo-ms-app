@@ -1,14 +1,14 @@
 import jwt from "jsonwebtoken";
 
 import { AuthenticationError } from "../errors/AuthenticationError";
-import AuthenticatedUser from "../models/domain/AuthenticatedUser";
+import { AuthenticatedUser } from "../models/domain/AuthenticatedUser";
 import type { ITokenService } from "../interfaces/services/ITokenService";
 
 const issuer = "staj-user-service";
 const audience = "staj-apis";
 const lifetimeSeconds = 60 * 60;
 
-class TokenService implements ITokenService {
+export class TokenService implements ITokenService {
   constructor(private readonly secret: string) {}
 
   create(user: AuthenticatedUser): string {
@@ -53,5 +53,3 @@ class TokenService implements ITokenService {
     return new AuthenticatedUser(Number(payload.sub), payload.role);
   }
 }
-
-export default TokenService;

@@ -1,4 +1,4 @@
-class LoginResult {
+export class LoginResult {
   readonly token: string;
 
   constructor(
@@ -7,5 +7,3 @@ class LoginResult {
     this.token = token;
   }
 }
-
-export { LoginResult };

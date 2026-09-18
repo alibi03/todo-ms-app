@@ -1,4 +1,4 @@
-import type User from "../../models/domain/User";
+import type { User } from "../../models/domain/User";
 import type { LoginRequestDto } from "../../models/dto/requests/LoginRequestDto";
 import type { LoginResult } from "../../models/dto/results/LoginResult";
 

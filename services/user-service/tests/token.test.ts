@@ -3,8 +3,8 @@ import test from "node:test";
 import jwt, { type JwtPayload } from "jsonwebtoken";
 
 import { AuthenticationError } from "../src/errors/AuthenticationError";
-import AuthenticatedUser from "../src/models/domain/AuthenticatedUser";
-import TokenService from "../src/services/TokenService";
+import { AuthenticatedUser } from "../src/models/domain/AuthenticatedUser";
+import { TokenService } from "../src/services/TokenService";
 
 const secret = "test-only-jwt-secret-not-for-deployment";
 const tokens = new TokenService(secret);

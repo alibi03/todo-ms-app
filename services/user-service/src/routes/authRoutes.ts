@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import type AuthController from "../controllers/AuthController";
+import type { AuthController } from "../controllers/AuthController";
 import { createAuthLimiter } from "../middleware/rateLimiters";
 
 function createAuthRouter(controller: AuthController): Router {

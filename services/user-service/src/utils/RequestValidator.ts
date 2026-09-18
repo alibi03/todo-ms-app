@@ -5,7 +5,7 @@ import { ValidationError } from "../errors/ValidationError";
 
 type RequestDtoClass<T> = ClassConstructor<T> & { readonly extraFieldsMessage: string };
 
-class RequestValidator {
+export class RequestValidator {
   static async validate<T extends object>(dtoClass: RequestDtoClass<T>, value: unknown): Promise<T> {
     if (typeof value !== "object" || value === null || Array.isArray(value)) {
       throw new ValidationError("Request data must be an object.");
@@ -50,5 +50,3 @@ class RequestValidator {
     return dto;
   }
 }
-
-export default RequestValidator;

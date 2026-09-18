@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import type { HealthResponse } from "../models/dto/responses/HealthResponse";
 import type AppLogger from "../types/AppLogger";
 
-class HealthController {
+export class HealthController {
   constructor(
     private readonly checkDatabase: () => Promise<void>,
     private readonly logger: AppLogger
@@ -27,5 +27,3 @@ class HealthController {
     }
   }
 }
-
-export default HealthController;

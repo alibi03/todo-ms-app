@@ -1,6 +1,6 @@
 import type UserRole from "../../types/UserRole";
 
-class UserCredentials {
+export class UserCredentials {
   readonly id: number;
   readonly role: UserRole;
   readonly passwordHash: string;
@@ -15,5 +15,3 @@ class UserCredentials {
     this.passwordHash = passwordHash;
   }
 }
-
-export default UserCredentials;

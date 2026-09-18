@@ -6,10 +6,11 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import test from "node:test";
+import { PG_MIGRATE_LOCK_ID } from "node-pg-migrate";
 import { Pool, type PoolClient } from "pg";
 
 import { loadConfig } from "../src/config/environment";
-import MigrationRunner from "../src/database/MigrationRunner";
+import { MigrationRunner } from "../src/database/MigrationRunner";
 
 test("migrations preserve existing schemas and apply pending versions safely", async (t) => {
   const config = loadConfig();
@@ -123,7 +124,6 @@ test("migrations preserve existing schemas and apply pending versions safely", a
     });
 
     await t.test("another migration connection cannot run while the lock is held", async () => {
-      const { PG_MIGRATE_LOCK_ID } = await import("node-pg-migrate");
       const owner = await pool.connect();
       try {
         await owner.query("SELECT pg_advisory_lock($1)", [PG_MIGRATE_LOCK_ID]);

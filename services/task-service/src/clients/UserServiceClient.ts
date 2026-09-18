@@ -1,9 +1,11 @@
 import { AuthenticationError } from "../errors/AuthenticationError";
 import { DependencyUnavailableError } from "../errors/DependencyUnavailableError";
 import type { IUserServiceClient } from "../interfaces/services/IUserServiceClient";
-import AuthenticatedUser from "../models/domain/AuthenticatedUser";
+import { AuthenticatedUser } from "../models/domain/AuthenticatedUser";
+import { UserProfileResponseDto } from "../models/dto/responses/UserProfileResponseDto";
+import { ResponseValidator } from "../utils/ResponseValidator";
 
-class UserServiceClient implements IUserServiceClient {
+export class UserServiceClient implements IUserServiceClient {
   constructor(private readonly baseUrl: string, private readonly timeoutMs: number = 3000) {}
 
   async getCurrentUser(token: string): Promise<AuthenticatedUser> {
@@ -22,13 +24,8 @@ class UserServiceClient implements IUserServiceClient {
         throw new DependencyUnavailableError("User Service is unavailable. Please try again later.");
       }
 
-      const payload: unknown = await this.readProfile(response);
-      const user = typeof payload === "object" && payload !== null && "user" in payload ? payload.user : null;
-      const id = typeof user === "object" && user !== null && "id" in user ? user.id : null;
-      if (typeof id !== "number" || !Number.isSafeInteger(id) || id < 1 || id > 2147483647) {
-        throw new Error("Invalid profile response.");
-      }
-      return new AuthenticatedUser(id);
+      const profile = await ResponseValidator.validate(UserProfileResponseDto, await this.readProfile(response));
+      return new AuthenticatedUser(profile.user.id);
     } catch (error) {
       if (error instanceof AuthenticationError) throw error;
       throw new DependencyUnavailableError("User Service is unavailable. Please try again later.");
@@ -55,5 +52,3 @@ class UserServiceClient implements IUserServiceClient {
     }
   }
 }
-
-export default UserServiceClient;

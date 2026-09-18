@@ -3,10 +3,10 @@ import "reflect-metadata";
 import { Transform } from "class-transformer";
 import { IsEmail, IsNotEmpty, IsString, Matches, MaxLength, MinLength } from "class-validator";
 
-import StringTransformer from "../../../utils/StringTransformer";
+import { StringTransformer } from "../../../utils/StringTransformer";
 import { MaxUtf8Bytes } from "../../../utils/ValidationDecorators";
 
-class RegisterRequestDto {
+export class RegisterRequestDto {
   static readonly extraFieldsMessage = "Only username, email and password are allowed.";
 
   @Transform(StringTransformer.trim)
@@ -29,5 +29,3 @@ class RegisterRequestDto {
   @IsString({ message: "Password must contain at least 8 characters." })
   declare password: string;
 }
-
-export { RegisterRequestDto };

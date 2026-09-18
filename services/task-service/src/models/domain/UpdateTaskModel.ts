@@ -1,6 +1,6 @@
 import type { TaskStatus } from "../../types/TaskStatus";
 
-class UpdateTaskModel {
+export class UpdateTaskModel {
   readonly title: string | undefined;
   readonly description: string | undefined;
   readonly status: TaskStatus | undefined;
@@ -11,5 +11,3 @@ class UpdateTaskModel {
     this.status = status;
   }
 }
-
-export default UpdateTaskModel;

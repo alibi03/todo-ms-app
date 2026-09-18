@@ -1,5 +1,5 @@
-import type User from "../../models/domain/User";
-import type UserCredentials from "../../models/domain/UserCredentials";
+import type { User } from "../../models/domain/User";
+import type { UserCredentials } from "../../models/domain/UserCredentials";
 import type { CreateUserModel } from "../../models/domain/CreateUserModel";
 
 interface IUserRepository {

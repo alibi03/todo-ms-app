@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
-import type TaskController from "../controllers/TaskController";
+import type { TaskController } from "../controllers/TaskController";
 import type { IUserServiceClient } from "../interfaces/services/IUserServiceClient";
 import authenticate from "../middleware/authenticate";
 

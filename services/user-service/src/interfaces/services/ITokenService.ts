@@ -1,4 +1,4 @@
-import type AuthenticatedUser from "../../models/domain/AuthenticatedUser";
+import type { AuthenticatedUser } from "../../models/domain/AuthenticatedUser";
 
 interface ITokenService {
   create(user: AuthenticatedUser): string;

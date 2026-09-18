@@ -1,5 +1,3 @@
 import { ApplicationError } from "./ApplicationError";
 
-class AuthenticationError extends ApplicationError {}
-
-export { AuthenticationError };
+export class AuthenticationError extends ApplicationError {}

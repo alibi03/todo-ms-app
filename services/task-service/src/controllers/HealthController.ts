@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import type { HealthResponse } from "../models/dto/responses/HealthResponse";
 
-class HealthController {
+export class HealthController {
   constructor(private readonly checkDatabase: () => Promise<void>) {}
 
   async check(_request: Request, response: Response<HealthResponse>): Promise<void> {
@@ -13,5 +13,3 @@ class HealthController {
     }
   }
 }
-
-export default HealthController;

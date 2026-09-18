@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 import test from "node:test";
 import { Pool } from "pg";
 import { loadConfig } from "../src/config/environment";
-import MigrationRunner from "../src/database/MigrationRunner";
+import { MigrationRunner } from "../src/database/MigrationRunner";
 
 test("status migration upgrades an existing task database safely", async context => {
   const config = loadConfig();

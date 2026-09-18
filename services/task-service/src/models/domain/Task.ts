@@ -1,6 +1,7 @@
 import type { TaskStatus } from "../../types/TaskStatus";
+import type { TaskProperties } from "./TaskProperties";
 
-class Task {
+export class Task implements TaskProperties {
   readonly id: number;
   readonly title: string;
   readonly description: string;
@@ -8,14 +9,12 @@ class Task {
   readonly ownerUserId: number;
   readonly createdAt: Date;
 
-  constructor(id: number, title: string, description: string, status: TaskStatus, ownerUserId: number, createdAt: Date) {
-    this.id = id;
-    this.title = title;
-    this.description = description;
-    this.status = status;
-    this.ownerUserId = ownerUserId;
-    this.createdAt = createdAt;
+  constructor(properties: TaskProperties) {
+    this.id = properties.id;
+    this.title = properties.title;
+    this.description = properties.description;
+    this.status = properties.status;
+    this.ownerUserId = properties.ownerUserId;
+    this.createdAt = properties.createdAt;
   }
 }
-
-export default Task;

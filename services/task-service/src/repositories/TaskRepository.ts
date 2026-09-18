@@ -1,12 +1,12 @@
-import type TaskDatabase from "../database/TaskDatabase";
+import type { TaskDatabase } from "../database/TaskDatabase";
 import type { ITaskRepository } from "../interfaces/repositories/ITaskRepository";
-import TaskMapper from "../mappers/TaskMapper";
+import { TaskMapper } from "../mappers/TaskMapper";
 import type { TaskRecord } from "../models/database/TaskRecord";
-import type CreateTaskModel from "../models/domain/CreateTaskModel";
-import type Task from "../models/domain/Task";
-import type UpdateTaskModel from "../models/domain/UpdateTaskModel";
+import type { CreateTaskModel } from "../models/domain/CreateTaskModel";
+import type { Task } from "../models/domain/Task";
+import type { UpdateTaskModel } from "../models/domain/UpdateTaskModel";
 
-class TaskRepository implements ITaskRepository {
+export class TaskRepository implements ITaskRepository {
   constructor(private readonly database: Pick<TaskDatabase, "query">) {}
 
   async create(task: CreateTaskModel): Promise<Task> {
@@ -49,5 +49,3 @@ class TaskRepository implements ITaskRepository {
     return result.rowCount === 1;
   }
 }
-
-export default TaskRepository;

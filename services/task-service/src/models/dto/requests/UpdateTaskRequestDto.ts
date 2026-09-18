@@ -2,9 +2,9 @@ import "reflect-metadata";
 import { Transform } from "class-transformer";
 import { IsIn, IsNotEmpty, IsString, Matches, MaxLength, ValidateIf } from "class-validator";
 import { taskStatuses, type TaskStatus } from "../../../types/TaskStatus";
-import StringTransformer from "../../../utils/StringTransformer";
+import { StringTransformer } from "../../../utils/StringTransformer";
 
-class UpdateTaskRequestDto {
+export class UpdateTaskRequestDto {
   static readonly extraFieldsMessage = "Only title, description and status are allowed.";
 
   @ValidateIf((_object: unknown, value: unknown) => value !== undefined)
@@ -26,5 +26,3 @@ class UpdateTaskRequestDto {
   @IsIn(taskStatuses, { message: "Status must be pending, in_progress or completed." })
   declare status?: TaskStatus;
 }
-
-export { UpdateTaskRequestDto };

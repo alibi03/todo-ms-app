@@ -1,6 +1,6 @@
 import express, { type Express } from "express";
-import HealthController from "./controllers/HealthController";
-import TaskController from "./controllers/TaskController";
+import { HealthController } from "./controllers/HealthController";
+import { TaskController } from "./controllers/TaskController";
 import type { ITaskService } from "./interfaces/services/ITaskService";
 import type { IUserServiceClient } from "./interfaces/services/IUserServiceClient";
 import createErrorHandler from "./middleware/errorHandler";

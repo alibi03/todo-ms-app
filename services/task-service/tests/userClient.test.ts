@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import express from "express";
-import UserServiceClient from "../src/clients/UserServiceClient";
+import { UserServiceClient } from "../src/clients/UserServiceClient";
 import { AuthenticationError } from "../src/errors/AuthenticationError";
 import { DependencyUnavailableError } from "../src/errors/DependencyUnavailableError";
 import withServer from "./testServer";
@@ -36,8 +36,13 @@ test("401 means invalid credentials; other upstream errors mean unavailable", as
 });
 
 test("invalid profile responses never authenticate a user", async () => {
-  for (const body of [null, {}, { user: {} }, { user: { id: "1" } }, { user: { id: 0 } },
-    { user: { id: -1 } }, { user: { id: 1.5 } }, { user: { id: 2147483648 } }]) {
+  for (const body of [null, [], [{ user: { id: 1 } }], "profile", 1, true, {},
+    { user: null }, { user: [] }, { user: [{ id: 1 }] }, { user: "profile" }, { user: 1 },
+    { user: {} }, { user: { id: "1" } }, { user: { id: true } }, { user: { id: null } },
+    { user: { id: [] } }, { user: { id: {} } }, { user: { id: 0 } },
+    { user: { id: -1 } }, { user: { id: 1.5 } }, { user: { id: 2147483648 } },
+    JSON.parse('{"user":{"__proto__":{"id":1}}}'),
+    JSON.parse('{"__proto__":{"user":{"id":1}}}')]) {
     const app = express();
     app.get("/api/profile", (_request, response) => { response.json(body); });
     await withServer(app, async base => {

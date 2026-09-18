@@ -1,14 +1,14 @@
 import { resolve } from "node:path";
+import { runner } from "node-pg-migrate";
 import type { PoolClient } from "pg";
 
-class MigrationRunner {
+export class MigrationRunner {
   constructor(
     private readonly directory: string = resolve(__dirname, "../../migrations"),
     private readonly schema: string = "public"
   ) {}
 
   async run(client: PoolClient): Promise<string[]> {
-    const { runner } = await import("node-pg-migrate");
     const applied = await runner({
       dbClient: client,
       dir: this.directory,
@@ -24,5 +24,3 @@ class MigrationRunner {
     return applied.map((migration) => migration.name);
   }
 }
-
-export default MigrationRunner;

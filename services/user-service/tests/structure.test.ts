@@ -2,17 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import createApp from "../src/app";
-import AuthController from "../src/controllers/AuthController";
-import HealthController from "../src/controllers/HealthController";
-import ProfileController from "../src/controllers/ProfileController";
+import { AuthController } from "../src/controllers/AuthController";
+import { HealthController } from "../src/controllers/HealthController";
+import { ProfileController } from "../src/controllers/ProfileController";
 import { ValidationError } from "../src/errors/ValidationError";
-import UserMapper from "../src/mappers/UserMapper";
-import UserResponseMapper from "../src/mappers/UserResponseMapper";
-import User from "../src/models/domain/User";
-import UserCredentials from "../src/models/domain/UserCredentials";
+import { UserMapper } from "../src/mappers/UserMapper";
+import { UserResponseMapper } from "../src/mappers/UserResponseMapper";
+import { User } from "../src/models/domain/User";
+import { UserCredentials } from "../src/models/domain/UserCredentials";
 import { LoginRequestDto } from "../src/models/dto/requests/LoginRequestDto";
 import { RegisterRequestDto } from "../src/models/dto/requests/RegisterRequestDto";
-import RequestValidator from "../src/utils/RequestValidator";
+import { RequestValidator } from "../src/utils/RequestValidator";
 import unusedAuth from "./testAuth";
 import withServer from "./testServer";
 

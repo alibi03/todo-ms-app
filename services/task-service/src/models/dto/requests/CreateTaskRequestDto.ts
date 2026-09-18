@@ -1,9 +1,9 @@
 import "reflect-metadata";
 import { Transform } from "class-transformer";
 import { IsNotEmpty, IsString, Matches, MaxLength, ValidateIf } from "class-validator";
-import StringTransformer from "../../../utils/StringTransformer";
+import { StringTransformer } from "../../../utils/StringTransformer";
 
-class CreateTaskRequestDto {
+export class CreateTaskRequestDto {
   static readonly extraFieldsMessage = "Only title and description are allowed.";
 
   @Transform(StringTransformer.trim)
@@ -20,5 +20,3 @@ class CreateTaskRequestDto {
   @IsString({ message: "Description must be text." })
   declare description?: string;
 }
-
-export { CreateTaskRequestDto };

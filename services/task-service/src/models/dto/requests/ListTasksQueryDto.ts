@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { Matches, ValidateIf } from "class-validator";
 
-class ListTasksQueryDto {
+export class ListTasksQueryDto {
   static readonly extraFieldsMessage = "Only limit and after are allowed.";
 
   @ValidateIf((_object: unknown, value: unknown) => value !== undefined)
@@ -12,5 +12,3 @@ class ListTasksQueryDto {
   @Matches(/^(?:0|[1-9]\d{0,9})$/, { message: "After must be a non-negative task ID." })
   declare after?: string;
 }
-
-export { ListTasksQueryDto };

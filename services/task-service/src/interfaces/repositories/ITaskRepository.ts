@@ -1,6 +1,6 @@
-import type Task from "../../models/domain/Task";
-import type CreateTaskModel from "../../models/domain/CreateTaskModel";
-import type UpdateTaskModel from "../../models/domain/UpdateTaskModel";
+import type { Task } from "../../models/domain/Task";
+import type { CreateTaskModel } from "../../models/domain/CreateTaskModel";
+import type { UpdateTaskModel } from "../../models/domain/UpdateTaskModel";
 
 interface ITaskRepository {
   create(task: CreateTaskModel): Promise<Task>;
