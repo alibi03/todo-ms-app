@@ -104,3 +104,55 @@ test("connection failures become dependency errors", async () => {
   await withServer(app, async base => { closedUrl = base; });
   await assert.rejects(new UserServiceClient(closedUrl, 100).getCurrentUser("test-token"), DependencyUnavailableError);
 });
+
+test("assignee lookup forwards the caller credential and matches the requested ID", async () => {
+  const app = express();
+  app.get("/api/users/12", (request, response) => {
+    assert.equal(request.get("authorization"), "Bearer test-token");
+    assert.equal(request.get("cookie"), undefined);
+    response.json({ user: { id: 12, email: "not-consumed@example.test" } });
+  });
+  await withServer(app, async base => {
+    assert.deepEqual({ ...await new UserServiceClient(base).getUserById("test-token", 12) }, { id: 12 });
+  });
+});
+
+test("only a lookup 404 means missing; other upstream failures remain errors", async () => {
+  for (const status of [401, 403, 404, 429, 500]) {
+    const app = express();
+    app.get("/api/users/12", (_request, response) => { response.status(status).json({ message: "private" }); });
+    await withServer(app, async base => {
+      const client = new UserServiceClient(base);
+      if (status === 404) assert.equal(await client.getUserById("test-token", 12), null);
+      else await assert.rejects(client.getUserById("test-token", 12), status === 401 ? AuthenticationError : DependencyUnavailableError);
+    });
+  }
+});
+
+test("lookup rejects mismatched IDs, malformed responses, redirects and oversized bodies", async () => {
+  for (const body of [{ user: { id: 13 } }, { user: { id: "12" } }, { user: [] }, null]) {
+    const app = express();
+    app.get("/api/users/12", (_request, response) => { response.json(body); });
+    await withServer(app, async base => {
+      await assert.rejects(new UserServiceClient(base).getUserById("test-token", 12), DependencyUnavailableError);
+    });
+  }
+  for (const mode of ["redirect", "oversize", "bad-json"]) {
+    const app = express();
+    app.get("/api/users/12", (_request, response) => {
+      if (mode === "redirect") response.redirect("/api/users/13");
+      else response.type("json").send(mode === "oversize" ? "x".repeat(17000) : "{");
+    });
+    await withServer(app, async base => {
+      await assert.rejects(new UserServiceClient(base).getUserById("test-token", 12), DependencyUnavailableError);
+    });
+  }
+});
+
+test("assignee lookup body stalls time out", async () => {
+  const app = express();
+  app.get("/api/users/12", (_request, response) => { response.type("json").write('{"user":'); });
+  await withServer(app, async base => {
+    await assert.rejects(new UserServiceClient(base, 40).getUserById("test-token", 12), DependencyUnavailableError);
+  });
+});

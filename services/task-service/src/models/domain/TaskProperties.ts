@@ -6,5 +6,7 @@ export interface TaskProperties {
   readonly description: string;
   readonly status: TaskStatus;
   readonly ownerUserId: number;
+  readonly assignedToUserId: number | null;
+  readonly dueDate: string | null;
   readonly createdAt: Date;
 }

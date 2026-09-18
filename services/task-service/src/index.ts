@@ -10,9 +10,10 @@ import { TaskService } from "./services/TaskService";
 async function main(): Promise<void> {
   const config = loadConfig();
   const database = new TaskDatabase(config.database);
+  const userServiceClient = new UserServiceClient(config.userServiceUrl, config.userServiceTimeoutMs);
   const app = createApp({
-    tasks: new TaskService(new TaskRepository(database)),
-    users: new UserServiceClient(config.userServiceUrl, config.userServiceTimeoutMs),
+    tasks: new TaskService(new TaskRepository(database), userServiceClient),
+    users: userServiceClient,
     checkDatabase: () => database.checkHealth(),
   });
   try {

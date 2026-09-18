@@ -32,18 +32,18 @@ test("task mapping renames database fields without copying unrelated data", () =
   const createdAt = new Date("2026-01-01T12:00:00Z");
   const row = {
     id: 4, title: "Task", description: "Details", status: "in_progress" as const,
-    owner_user_id: 7, created_at: createdAt, password_hash: "private",
+    owner_user_id: 7, assigned_to_user_id: 2, due_date: "2026-10-01", created_at: createdAt, password_hash: "private",
     ownerUserId: 99, createdAt: new Date("2025-01-01T00:00:00Z"),
   };
   const task = TaskMapper.toDomain(row);
   assert.ok(task instanceof Task);
   assert.deepEqual({ ...task }, {
-    id: 4, title: "Task", description: "Details", status: "in_progress", ownerUserId: 7, createdAt,
+    id: 4, title: "Task", description: "Details", status: "in_progress", ownerUserId: 7, assignedToUserId: 2, dueDate: "2026-10-01", createdAt,
   });
   assert.equal(task.createdAt, createdAt);
   assert.deepEqual(TaskResponseMapper.toResponse(task), {
     id: 4, title: "Task", description: "Details", status: "in_progress",
-    ownerUserId: 7, createdAt: createdAt.toISOString(),
+    ownerUserId: 7, assignedToUserId: 2, dueDate: "2026-10-01", createdAt: createdAt.toISOString(),
   });
   assert.equal(row.owner_user_id, 7);
   assert.equal(row.ownerUserId, 99);

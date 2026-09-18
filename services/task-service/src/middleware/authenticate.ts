@@ -8,6 +8,7 @@ function authenticate(users: IUserServiceClient): RequestHandler {
     if (!token || token.length > 4096) throw new AuthenticationError("A Bearer token is required.");
     const user = await users.getCurrentUser(token);
     response.locals.userId = user.id;
+    response.locals.token = token;
     next();
   };
 }

@@ -6,36 +6,51 @@ import type { CreateTaskModel } from "../models/domain/CreateTaskModel";
 import type { Task } from "../models/domain/Task";
 import type { UpdateTaskModel } from "../models/domain/UpdateTaskModel";
 
+const taskColumns = "id, title, description, status, owner_user_id, assigned_to_user_id, to_char(due_date, 'YYYY-MM-DD') AS due_date, created_at";
+
 export class TaskRepository implements ITaskRepository {
   constructor(private readonly database: Pick<TaskDatabase, "query">) {}
 
   async create(task: CreateTaskModel): Promise<Task> {
     const result = await this.database.query<TaskRecord>(
-      `INSERT INTO tasks (title, description, owner_user_id) VALUES ($1, $2, $3)
-       RETURNING id, title, description, status, owner_user_id, created_at`,
-      [task.title, task.description, task.ownerUserId]
+      `INSERT INTO tasks (title, description, owner_user_id, assigned_to_user_id, due_date)
+       VALUES ($1, $2, $3, $4, $5) RETURNING ${taskColumns}`,
+      [task.title, task.description, task.ownerUserId, task.assignedToUserId, task.dueDate]
     );
     const row = result.rows[0];
     if (!row) throw new Error("Task insert returned no row.");
     return TaskMapper.toDomain(row);
   }
 
-  async listByOwner(ownerUserId: number, after: number, limit: number): Promise<Task[]> {
+  async listForUser(userId: number, after: number, limit: number): Promise<Task[]> {
     const result = await this.database.query<TaskRecord>(
-      `SELECT id, title, description, status, owner_user_id, created_at FROM tasks
-       WHERE owner_user_id = $1 AND id > $2 ORDER BY id ASC LIMIT $3`,
-      [ownerUserId, after, limit]
+      `SELECT ${taskColumns} FROM tasks
+       WHERE (owner_user_id = $1 OR assigned_to_user_id = $1) AND id > $2 ORDER BY id ASC LIMIT $3`,
+      [userId, after, limit]
     );
     return result.rows.map(TaskMapper.toDomain);
   }
 
-  async updateByOwner(id: number, ownerUserId: number, input: UpdateTaskModel): Promise<Task | null> {
+  async findVisibleById(id: number, userId: number): Promise<Task | null> {
+    const result = await this.database.query<TaskRecord>(
+      `SELECT ${taskColumns} FROM tasks WHERE id = $1 AND (owner_user_id = $2 OR assigned_to_user_id = $2)`,
+      [id, userId]
+    );
+    const row = result.rows[0];
+    return row ? TaskMapper.toDomain(row) : null;
+  }
+
+  async updateForUser(id: number, userId: number, input: UpdateTaskModel): Promise<Task | null> {
     const result = await this.database.query<TaskRecord>(
       `UPDATE tasks SET title = COALESCE($3, title), description = COALESCE($4, description),
-       status = COALESCE($5, status)
-       WHERE id = $1 AND owner_user_id = $2
-       RETURNING id, title, description, status, owner_user_id, created_at`,
-      [id, ownerUserId, input.title ?? null, input.description ?? null, input.status ?? null]
+       status = COALESCE($5, status),
+       assigned_to_user_id = CASE WHEN $6::boolean THEN $7::integer ELSE assigned_to_user_id END,
+       due_date = CASE WHEN $8::boolean THEN $9::date ELSE due_date END
+       WHERE id = $1 AND (owner_user_id = $2 OR (assigned_to_user_id = $2 AND $10::boolean))
+       RETURNING ${taskColumns}`,
+      [id, userId, input.title ?? null, input.description ?? null, input.status ?? null,
+        input.assignedToUserId !== undefined, input.assignedToUserId ?? null,
+        input.dueDate !== undefined, input.dueDate ?? null, input.isStatusOnly()]
     );
     const row = result.rows[0];
     return row ? TaskMapper.toDomain(row) : null;

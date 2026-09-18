@@ -3,6 +3,7 @@ import type { ErrorRequestHandler } from "express";
 import { AuthenticationError } from "../errors/AuthenticationError";
 import { ConflictError } from "../errors/ConflictError";
 import { ValidationError } from "../errors/ValidationError";
+import { NotFoundError } from "../errors/NotFoundError";
 import type AppLogger from "../types/AppLogger";
 
 function createErrorHandler(logger: AppLogger): ErrorRequestHandler {
@@ -10,6 +11,7 @@ function createErrorHandler(logger: AppLogger): ErrorRequestHandler {
     const status = error instanceof ValidationError ? 400
       : error instanceof AuthenticationError ? 401
       : error instanceof ConflictError ? 409
+      : error instanceof NotFoundError ? 404
       : undefined;
 
     if (status !== undefined && error instanceof Error) {

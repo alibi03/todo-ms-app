@@ -16,7 +16,7 @@ export class TaskController {
 
   async create(request: Request, response: Response<CreateTaskResponse, AuthenticatedLocals>): Promise<void> {
     const input = await RequestValidator.validate(CreateTaskRequestDto, request.body);
-    const task = await this.taskService.create(response.locals.userId, input);
+    const task = await this.taskService.create(response.locals.userId, input, response.locals.token);
     response.status(201).json({ task: TaskResponseMapper.toResponse(task) });
   }
 
@@ -29,7 +29,7 @@ export class TaskController {
   async update(request: Request, response: Response<UpdateTaskResponse, AuthenticatedLocals>): Promise<void> {
     const params = await RequestValidator.validate(TaskIdParamsDto, request.params);
     const input = await RequestValidator.validate(UpdateTaskRequestDto, request.body);
-    const task = await this.taskService.update(response.locals.userId, Number(params.id), input);
+    const task = await this.taskService.update(response.locals.userId, Number(params.id), input, response.locals.token);
     response.json({ task: TaskResponseMapper.toResponse(task) });
   }
 

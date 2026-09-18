@@ -38,6 +38,7 @@ function post(baseUrl: string, body: unknown): Promise<Response> {
 
 function makeApp(authentication: Pick<AuthenticationService, "login" | "getProfile">) {
   return createApp({
+    userLookup: unusedAuth.userLookup,
     checkDatabase: async () => undefined,
     registration: { register: async () => user },
     authentication,
@@ -189,6 +190,7 @@ test("login and profile failures do not expose credentials in responses or logs"
   const logged: unknown[] = [];
   const fail = async (): Promise<never> => { throw new Error("test-only-sensitive-details"); };
   const app = createApp({
+    userLookup: unusedAuth.userLookup,
     checkDatabase: async () => undefined, registration: { register: fail },
     authentication: { login: fail, getProfile: fail }, tokens,
   }, { error: (...args) => { logged.push(args); } });

@@ -1,4 +1,7 @@
 const unusedAuth = {
+  userLookup: {
+    getUser: async (): Promise<never> => { throw new Error("Unexpected user lookup."); },
+  },
   authentication: {
     login: async (): Promise<never> => { throw new Error("Unexpected login call."); },
     getProfile: async (): Promise<never> => { throw new Error("Unexpected profile call."); },

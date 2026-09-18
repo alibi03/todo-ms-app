@@ -115,4 +115,47 @@ test("real User and Task services communicate across Docker", async context => {
     assert.equal((await change(alice.token, task.id, "PATCH", { title: "Gone" })).status, 404);
     assert.equal((await list(bob.token)).tasks.length, 1);
   });
+  const carol = await account("carol");
+  let assignedTaskId: number;
+  await context.test("authenticated lookup exposes only an existing user ID", async () => {
+    const response = await fetch(userUrl + "/api/users/" + bob.id, { headers: { Authorization: "Bearer " + alice.token } });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { user: { id: bob.id } });
+    assert.equal((await fetch(userUrl + "/api/users/" + bob.id)).status, 401);
+  });
+  await context.test("task creation verifies the assignee through REST and preserves the due date", async () => {
+    const response = await create(alice.token, { title: "Assigned across services", assignedToUserId: bob.id, dueDate: "2028-02-29" });
+    assert.equal(response.status, 201);
+    const task = (await response.json()).task;
+    assignedTaskId = task.id;
+    assert.equal(task.assignedToUserId, bob.id);
+    assert.equal(task.dueDate, "2028-02-29");
+    assert.ok((await list(bob.token)).tasks.some((row: { id: number }) => row.id === task.id));
+    assert.equal((await change(bob.token, task.id, "PATCH", { status: "in_progress" })).status, 200);
+    assert.equal((await change(bob.token, task.id, "PATCH", { dueDate: null })).status, 403);
+    assert.equal((await change(bob.token, task.id, "DELETE")).status, 404);
+  });
+  await context.test("missing assignees and invalid dates cannot create or change stored tasks", async () => {
+    const before = await list(alice.token);
+    for (const body of [{ assignedToUserId: 2147483647 }, { dueDate: "2026-02-29" }, { assignedToUserId: String(bob.id) }]) {
+      assert.equal((await create(alice.token, { title: "Invalid", ...body })).status, 400);
+      assert.equal((await change(alice.token, assignedTaskId, "PATCH", body)).status, 400);
+    }
+    assert.deepEqual(await list(alice.token), before);
+  });
+  await context.test("reassignment revokes previous access and clearing keeps the task with its owner", async () => {
+    const response = await change(alice.token, assignedTaskId, "PATCH", { assignedToUserId: carol.id });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).task.dueDate, "2028-02-29");
+    assert.equal((await list(bob.token)).tasks.some((row: { id: number }) => row.id === assignedTaskId), false);
+    assert.equal((await change(bob.token, assignedTaskId, "PATCH", { status: "completed" })).status, 404);
+    assert.equal((await change(carol.token, assignedTaskId, "PATCH", { status: "completed" })).status, 200);
+    const cleared = await change(alice.token, assignedTaskId, "PATCH", { assignedToUserId: null, dueDate: null });
+    assert.equal(cleared.status, 200);
+    const task = (await cleared.json()).task;
+    assert.equal(task.assignedToUserId, null);
+    assert.equal(task.dueDate, null);
+    assert.equal(task.ownerUserId, alice.id);
+    assert.equal((await list(carol.token)).tasks.some((row: { id: number }) => row.id === assignedTaskId), false);
+  });
 });

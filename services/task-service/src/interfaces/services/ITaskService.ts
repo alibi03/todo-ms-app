@@ -5,9 +5,9 @@ import type { TaskPage } from "../../models/dto/results/TaskPage";
 import type { UpdateTaskRequestDto } from "../../models/dto/requests/UpdateTaskRequestDto";
 
 interface ITaskService {
-  create(ownerUserId: number, input: CreateTaskRequestDto): Promise<Task>;
-  list(ownerUserId: number, query: ListTasksQueryDto): Promise<TaskPage>;
-  update(ownerUserId: number, id: number, input: UpdateTaskRequestDto): Promise<Task>;
+  create(ownerUserId: number, input: CreateTaskRequestDto, token: string): Promise<Task>;
+  list(userId: number, query: ListTasksQueryDto): Promise<TaskPage>;
+  update(userId: number, id: number, input: UpdateTaskRequestDto, token: string): Promise<Task>;
   delete(ownerUserId: number, id: number): Promise<void>;
 }
 

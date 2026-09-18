@@ -7,6 +7,8 @@ export class Task implements TaskProperties {
   readonly description: string;
   readonly status: TaskStatus;
   readonly ownerUserId: number;
+  readonly assignedToUserId: number | null;
+  readonly dueDate: string | null;
   readonly createdAt: Date;
 
   constructor(properties: TaskProperties) {
@@ -15,6 +17,8 @@ export class Task implements TaskProperties {
     this.description = properties.description;
     this.status = properties.status;
     this.ownerUserId = properties.ownerUserId;
+    this.assignedToUserId = properties.assignedToUserId;
+    this.dueDate = properties.dueDate;
     this.createdAt = properties.createdAt;
   }
 }

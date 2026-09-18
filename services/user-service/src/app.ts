@@ -3,6 +3,9 @@ import express, { type Express } from "express";
 import { AuthController } from "./controllers/AuthController";
 import { HealthController } from "./controllers/HealthController";
 import { ProfileController } from "./controllers/ProfileController";
+import { UserLookupController } from "./controllers/UserLookupController";
+import type { IUserLookupService } from "./interfaces/services/IUserLookupService";
+import createUserRouter from "./routes/userRoutes";
 import createErrorHandler from "./middleware/errorHandler";
 import type { IAuthenticationService } from "./interfaces/services/IAuthenticationService";
 import type { IRegistrationService } from "./interfaces/services/IRegistrationService";
@@ -16,19 +19,21 @@ type AppDependencies = {
   registration: IRegistrationService;
   authentication: IAuthenticationService;
   tokens: ITokenService;
+  userLookup: IUserLookupService;
 };
 
 function createApp(
-  { checkDatabase, registration, authentication, tokens }: AppDependencies,
+  { checkDatabase, registration, authentication, tokens, userLookup }: AppDependencies,
   logger: AppLogger = console
 ): Express {
   const app = express();
   const authController = new AuthController(registration, authentication);
   const profileController = new ProfileController(authentication);
+  const userLookupController = new UserLookupController(userLookup);
   const healthController = new HealthController(checkDatabase, logger);
 
   app.disable("x-powered-by");
-  app.use(["/api/auth", "/api/profile"], (_request, response, next) => {
+  app.use(["/api/auth", "/api/profile", "/api/users"], (_request, response, next) => {
     response.set("Cache-Control", "no-store");
     next();
   });
@@ -44,6 +49,7 @@ function createApp(
   app.get("/api/health", healthController.check.bind(healthController));
   app.use("/api/auth", createAuthRouter(authController));
   app.use("/api/profile", createProfileRouter(profileController, tokens));
+  app.use("/api/users", createUserRouter(userLookupController, tokens));
 
   app.use((_request, response) => {
     response.status(404).json({ message: "Route not found." });

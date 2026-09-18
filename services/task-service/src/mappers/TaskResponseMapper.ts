@@ -6,6 +6,7 @@ export class TaskResponseMapper {
     return {
       id: task.id, title: task.title, description: task.description,
       status: task.status, ownerUserId: task.ownerUserId, createdAt: task.createdAt.toISOString(),
+      assignedToUserId: task.assignedToUserId, dueDate: task.dueDate,
     };
   }
 }

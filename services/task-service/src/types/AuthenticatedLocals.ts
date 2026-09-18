@@ -1,3 +1,3 @@
-type AuthenticatedLocals = { userId: number };
+type AuthenticatedLocals = { userId: number; token: string };
 
 export default AuthenticatedLocals;

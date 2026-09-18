@@ -1,5 +1,6 @@
 import { AuthenticationError } from "../errors/AuthenticationError";
 import { DependencyUnavailableError } from "../errors/DependencyUnavailableError";
+import { ValidationError } from "../errors/ValidationError";
 import type { IUserServiceClient } from "../interfaces/services/IUserServiceClient";
 import { AuthenticatedUser } from "../models/domain/AuthenticatedUser";
 import { UserProfileResponseDto } from "../models/dto/responses/UserProfileResponseDto";
@@ -9,8 +10,25 @@ export class UserServiceClient implements IUserServiceClient {
   constructor(private readonly baseUrl: string, private readonly timeoutMs: number = 3000) {}
 
   async getCurrentUser(token: string): Promise<AuthenticatedUser> {
+    const user = await this.fetchUser("/api/profile", token);
+    if (!user) throw new DependencyUnavailableError("User Service is unavailable. Please try again later.");
+    return user;
+  }
+
+  async getUserById(token: string, userId: number): Promise<AuthenticatedUser | null> {
+    if (!Number.isSafeInteger(userId) || userId < 1 || userId > 2147483647) {
+      throw new ValidationError("Assignee must be a valid user ID.");
+    }
+    const user = await this.fetchUser("/api/users/" + String(userId), token, true);
+    if (user && user.id !== userId) {
+      throw new DependencyUnavailableError("User Service is unavailable. Please try again later.");
+    }
+    return user;
+  }
+
+  private async fetchUser(path: string, token: string, allowNotFound = false): Promise<AuthenticatedUser | null> {
     try {
-      const response = await fetch(new URL("/api/profile", this.baseUrl), {
+      const response = await fetch(new URL(path, this.baseUrl), {
         headers: { Authorization: "Bearer " + token, Accept: "application/json" },
         signal: AbortSignal.timeout(this.timeoutMs),
         redirect: "error",
@@ -18,6 +36,10 @@ export class UserServiceClient implements IUserServiceClient {
       if (response.status === 401) {
         await response.body?.cancel();
         throw new AuthenticationError("Invalid or expired credentials.");
+      }
+      if (response.status === 404 && allowNotFound) {
+        await response.body?.cancel();
+        return null;
       }
       if (response.status !== 200 || !response.headers.get("content-type")?.includes("application/json")) {
         await response.body?.cancel();

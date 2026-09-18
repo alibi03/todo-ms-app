@@ -1,3 +1,4 @@
+import unusedAuth from "./testAuth";
 import "dotenv/config";
 
 import assert from "node:assert/strict";
@@ -28,6 +29,7 @@ test("login and profile work with PostgreSQL", async (t) => {
     const tokens = new TokenService(config.jwtSecret);
     const authentication = new AuthenticationService(users, tokens, await bcrypt.hash("test-only-dummy-password", 12));
     const app = createApp({
+    userLookup: unusedAuth.userLookup,
       checkDatabase: () => database.checkHealth(),
       registration: new RegistrationService(users), authentication, tokens,
     });

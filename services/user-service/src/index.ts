@@ -11,6 +11,7 @@ import { UserRepository } from "./repositories/UserRepository";
 import { AuthenticationService } from "./services/AuthenticationService";
 import { RegistrationService } from "./services/RegistrationService";
 import { TokenService } from "./services/TokenService";
+import { UserLookupService } from "./services/UserLookupService";
 
 async function listen(server: Server): Promise<void> {
   await new Promise<void>((resolve, reject) => {
@@ -53,6 +54,7 @@ async function main(): Promise<void> {
     registration,
     authentication,
     tokens,
+    userLookup: new UserLookupService(users),
   });
   const server = app.listen(config.port, "0.0.0.0");
   await listen(server);

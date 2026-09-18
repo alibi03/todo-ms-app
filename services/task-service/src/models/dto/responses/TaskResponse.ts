@@ -6,6 +6,8 @@ interface TaskResponse {
   description: string;
   status: TaskStatus;
   ownerUserId: number;
+  assignedToUserId: number | null;
+  dueDate: string | null;
   createdAt: string;
 }
 
