@@ -78,6 +78,11 @@ services:
       DB_PASSWORD: ${TASK_DB_PASSWORD:?Set TASK_DB_PASSWORD in .env}
       USER_SERVICE_URL: http://user-service:3000
       USER_SERVICE_TIMEOUT_MS: 3000
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: staj_app
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+      RABBITMQ_VHOST: staj
     ports:
       - "127.0.0.1:3002:3000"
     depends_on:
@@ -94,14 +99,85 @@ services:
     networks:
       - app-net
       - task-data
+      - message-net
+
+  rabbitmq:
+    image: rabbitmq:4.2-alpine
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: staj_app
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+      RABBITMQ_DEFAULT_VHOST: staj
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - message-net
+
+  notification-db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: staj_notifications
+      POSTGRES_USER: staj_notification
+      POSTGRES_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?Set NOTIFICATION_DB_PASSWORD in .env}
+    volumes:
+      - notification_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - notification-data
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+    environment:
+      PORT: 3000
+      DB_HOST: notification-db
+      DB_PORT: 5432
+      DB_NAME: staj_notifications
+      DB_USER: staj_notification
+      DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?Set NOTIFICATION_DB_PASSWORD in .env}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: staj_app
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+      RABBITMQ_VHOST: staj
+    ports:
+      - "127.0.0.1:3003:3000"
+    depends_on:
+      notification-db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    networks:
+      - notification-data
+      - message-net
+      - app-net
 
 volumes:
   user_db_data:
   task_db_data:
+  notification_db_data:
+  rabbitmq_data:
 
 networks:
   app-net:
   user-data:
     internal: true
   task-data:
+    internal: true
+  notification-data:
+    internal: true
+  message-net:
     internal: true

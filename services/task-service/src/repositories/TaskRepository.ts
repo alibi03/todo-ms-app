@@ -13,8 +13,14 @@ export class TaskRepository implements ITaskRepository {
 
   async create(task: CreateTaskModel): Promise<Task> {
     const result = await this.database.query<TaskRecord>(
-      `INSERT INTO tasks (title, description, owner_user_id, assigned_to_user_id, due_date)
-       VALUES ($1, $2, $3, $4, $5) RETURNING ${taskColumns}`,
+      `WITH inserted AS (
+         INSERT INTO tasks (title, description, owner_user_id, assigned_to_user_id, due_date)
+         VALUES ($1, $2, $3, $4, $5) RETURNING *
+       ), enqueued AS (
+         INSERT INTO task_outbox (event_type, task_id, recipient_user_id, title)
+         SELECT 'task.assigned', id, assigned_to_user_id, title FROM inserted
+         WHERE assigned_to_user_id IS NOT NULL
+       ) SELECT ${taskColumns} FROM inserted`,
       [task.title, task.description, task.ownerUserId, task.assignedToUserId, task.dueDate]
     );
     const row = result.rows[0];
@@ -42,12 +48,24 @@ export class TaskRepository implements ITaskRepository {
 
   async updateForUser(id: number, userId: number, input: UpdateTaskModel): Promise<Task | null> {
     const result = await this.database.query<TaskRecord>(
-      `UPDATE tasks SET title = COALESCE($3, title), description = COALESCE($4, description),
-       status = COALESCE($5, status),
-       assigned_to_user_id = CASE WHEN $6::boolean THEN $7::integer ELSE assigned_to_user_id END,
-       due_date = CASE WHEN $8::boolean THEN $9::date ELSE due_date END
-       WHERE id = $1 AND (owner_user_id = $2 OR (assigned_to_user_id = $2 AND $10::boolean))
-       RETURNING ${taskColumns}`,
+      `WITH current AS MATERIALIZED (
+         SELECT * FROM tasks WHERE id = $1 FOR UPDATE
+       ), changed AS (
+         UPDATE tasks AS task SET title = COALESCE($3, current.title),
+         description = COALESCE($4, current.description), status = COALESCE($5, current.status),
+         assigned_to_user_id = CASE WHEN $6::boolean THEN $7::integer ELSE current.assigned_to_user_id END,
+         due_date = CASE WHEN $8::boolean THEN $9::date ELSE current.due_date END
+         FROM current WHERE task.id = current.id
+           AND (current.owner_user_id = $2 OR (current.assigned_to_user_id = $2 AND $10::boolean))
+         RETURNING task.*
+       ), enqueued AS (
+         INSERT INTO task_outbox (event_type, task_id, recipient_user_id, title)
+         SELECT CASE WHEN current.assigned_to_user_id IS NULL THEN 'task.assigned' ELSE 'task.reassigned' END,
+           changed.id, changed.assigned_to_user_id, changed.title
+         FROM changed JOIN current ON changed.id = current.id
+         WHERE changed.assigned_to_user_id IS NOT NULL
+           AND changed.assigned_to_user_id IS DISTINCT FROM current.assigned_to_user_id
+       ) SELECT ${taskColumns} FROM changed`,
       [id, userId, input.title ?? null, input.description ?? null, input.status ?? null,
         input.assignedToUserId !== undefined, input.assignedToUserId ?? null,
         input.dueDate !== undefined, input.dueDate ?? null, input.isStatusOnly()]

@@ -6,10 +6,16 @@ import { loadConfig } from "./config/environment";
 import { TaskDatabase } from "./database/TaskDatabase";
 import { TaskRepository } from "./repositories/TaskRepository";
 import { TaskService } from "./services/TaskService";
+import { loadBrokerConfig } from "./config/broker";
+import { OutboxRepository } from "./repositories/OutboxRepository";
+import { RabbitEventPublisher } from "./messaging/RabbitEventPublisher";
+import { OutboxDispatcher } from "./services/OutboxDispatcher";
 
 async function main(): Promise<void> {
   const config = loadConfig();
+  const brokerConfig = loadBrokerConfig();
   const database = new TaskDatabase(config.database);
+  const dispatcher = new OutboxDispatcher(new OutboxRepository(database), new RabbitEventPublisher(brokerConfig));
   const userServiceClient = new UserServiceClient(config.userServiceUrl, config.userServiceTimeoutMs);
   const app = createApp({
     tasks: new TaskService(new TaskRepository(database), userServiceClient),
@@ -20,6 +26,7 @@ async function main(): Promise<void> {
     await database.migrate();
     const server = app.listen(config.port, "0.0.0.0");
     await once(server, "listening");
+    dispatcher.start();
     console.log("Task Service listening on port " + String(config.port));
     let shuttingDown = false;
     const shutdown = async (): Promise<void> => {
@@ -35,6 +42,7 @@ async function main(): Promise<void> {
         console.error("Task Service shutdown failed.");
         process.exitCode = 1;
       } finally {
+        await dispatcher.stop().catch(() => { process.exitCode = 1; });
         await database.close().catch(() => {
           console.error("Task database shutdown failed.");
           process.exitCode = 1;
@@ -45,6 +53,7 @@ async function main(): Promise<void> {
     process.once("SIGINT", () => { void shutdown(); });
     process.once("SIGTERM", () => { void shutdown(); });
   } catch (error) {
+    await dispatcher.stop().catch(() => undefined);
     await database.close().catch(() => undefined);
     throw error;
   }

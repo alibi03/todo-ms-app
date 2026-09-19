@@ -23,7 +23,7 @@ test("task storage and migrations in a disposable database", async context => {
       await database.migrate();
       assert.equal((await service.list(10, {})).tasks[0]?.id, created.id);
       const migrations = await database.query("SELECT name FROM pgmigrations ORDER BY id");
-      assert.deepEqual(migrations.rows, [{ name: "001_initial_task_schema" }, { name: "002_task_statuses" }, { name: "003_task_assignment_and_due_date" }]);
+      assert.deepEqual(migrations.rows, [{ name: "001_initial_task_schema" }, { name: "002_task_statuses" }, { name: "003_task_assignment_and_due_date" }, { name: "004_task_outbox" }]);
     });
     await context.test("owner-filtered SQL and cursor pagination isolate users", async () => {
       await service.create(20, { title: "Other owner" }, "test-token");

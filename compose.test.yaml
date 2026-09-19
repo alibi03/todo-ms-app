@@ -1,0 +1,25 @@
+name: staj-notification-test-local
+
+services:
+  user-db:
+    environment:
+      POSTGRES_DB: staj_users_test_notifications
+    ports: !reset []
+  user-service:
+    environment:
+      DB_NAME: staj_users_test_notifications
+    ports: !override ["127.0.0.1::3000"]
+  task-db:
+    environment:
+      POSTGRES_DB: staj_tasks_test_notifications
+  task-service:
+    environment:
+      DB_NAME: staj_tasks_test_notifications
+    ports: !override ["127.0.0.1::3000"]
+  notification-db:
+    environment:
+      POSTGRES_DB: staj_notifications_test_notifications
+  notification-service:
+    environment:
+      DB_NAME: staj_notifications_test_notifications
+    ports: !override ["127.0.0.1::3000"]
