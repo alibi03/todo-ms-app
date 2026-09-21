@@ -2,7 +2,9 @@ import { ConfigurationError } from "../errors/ConfigurationError";
 
 export type DatabaseConfig = { host: string; port: number; name: string; user: string; password: string };
 
-export function loadConfig(environment: NodeJS.ProcessEnv = process.env): { port: number; database: DatabaseConfig } {
+export function loadConfig(environment: NodeJS.ProcessEnv = process.env): {
+  port: number; database: DatabaseConfig; userServiceUrl: string; userServiceTimeoutMs: number;
+} {
   function required(key: string): string {
     const value = environment[key]?.trim();
     if (!value) throw new ConfigurationError(key + " is required.");
@@ -16,7 +18,21 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): { port
     }
     return value;
   }
+  let url: URL;
+  try { url = new URL(required("USER_SERVICE_URL")); }
+  catch { throw new ConfigurationError("USER_SERVICE_URL must be an HTTP or HTTPS origin."); }
+  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password
+    || url.pathname !== "/" || url.search || url.hash) {
+    throw new ConfigurationError("USER_SERVICE_URL must be an HTTP or HTTPS origin.");
+  }
+  const rawTimeout = environment.USER_SERVICE_TIMEOUT_MS ?? "3000";
+  const timeout = Number(rawTimeout);
+  if (!/^\d+$/.test(rawTimeout) || !Number.isSafeInteger(timeout) || timeout < 1 || timeout > 10000) {
+    throw new ConfigurationError("USER_SERVICE_TIMEOUT_MS must be between 1 and 10000.");
+  }
   return {
+    userServiceUrl: url.origin,
+    userServiceTimeoutMs: timeout,
     port: port("PORT", 3000),
     database: {
       host: required("DB_HOST"), port: port("DB_PORT", 5432), name: required("DB_NAME"),

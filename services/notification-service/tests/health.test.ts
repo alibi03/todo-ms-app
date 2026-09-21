@@ -3,9 +3,15 @@ import test from "node:test";
 import { createApp } from "../src/app";
 import withServer from "./testServer";
 
+const dependencies = {
+  notificationService: { async process() {}, async list() { assert.fail("Health must not query notifications."); } },
+  userServiceClient: { async getCurrentUser() { assert.fail("Health and missing credentials must not call User Service."); } },
+};
+
 test("notification readiness requires both storage and a connected consumer", async () => {
   for (const databaseUp of [true, false]) for (const brokerUp of [true, false]) {
-    await withServer(createApp(async () => { if (!databaseUp) throw new Error("private connection details"); }, () => brokerUp), async url => {
+    await withServer(createApp({ ...dependencies,
+      checkDatabase: async () => { if (!databaseUp) throw new Error("private connection details"); }, isConsumerReady: () => brokerUp }), async url => {
       const response = await fetch(url + "/api/health");
       assert.equal(response.status, databaseUp && brokerUp ? 200 : 503);
       assert.equal(response.headers.get("cache-control"), "no-store");
@@ -15,9 +21,10 @@ test("notification readiness requires both storage and a connected consumer", as
   }
 });
 
-test("notification data has no unauthenticated HTTP endpoint", async () => {
-  await withServer(createApp(async () => undefined, () => true), async url => {
+test("notification data cannot be read without authentication", async () => {
+  await withServer(createApp({ ...dependencies, checkDatabase: async () => undefined, isConsumerReady: () => true }), async url => {
     const response = await fetch(url + "/api/notifications");
-    assert.equal(response.status, 404);
+    assert.equal(response.status, 401);
+    assert.equal(response.headers.get("www-authenticate"), "Bearer");
   });
 });

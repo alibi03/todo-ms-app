@@ -7,6 +7,7 @@ import { NotificationDatabase } from "./database/NotificationDatabase";
 import { NotificationRepository } from "./repositories/NotificationRepository";
 import { NotificationService } from "./services/NotificationService";
 import { NotificationConsumer } from "./messaging/NotificationConsumer";
+import { UserServiceClient } from "./clients/UserServiceClient";
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -16,7 +17,12 @@ async function main(): Promise<void> {
   const consumer = new NotificationConsumer(brokerConfig, notificationService);
   try {
     await database.migrate();
-    const app = createApp(() => database.checkHealth(), () => consumer.isReady());
+    const app = createApp({
+      notificationService,
+      userServiceClient: new UserServiceClient(config.userServiceUrl, config.userServiceTimeoutMs),
+      checkDatabase: () => database.checkHealth(),
+      isConsumerReady: () => consumer.isReady(),
+    });
     const server = app.listen(config.port, "0.0.0.0");
     await once(server, "listening");
     consumer.start();

@@ -59,7 +59,7 @@ test("transport metadata and message size are checked before storage", async () 
 });
 
 test("notification service maps the contract to a domain model before repository access", async () => {
-  const service = new NotificationService({ async createOnce(model) {
+  const service = new NotificationService({ async listByRecipient() { return []; }, async createOnce(model) {
     assert.ok(model instanceof CreateNotificationModel);
     assert.deepEqual({ ...model }, { eventId: event.eventId, eventType: event.type, taskId: 1, recipientUserId: 2,
       title: "Task", occurredAt: new Date(event.occurredAt) });
@@ -69,20 +69,20 @@ test("notification service maps the contract to a domain model before repository
 
 test("consumer acknowledges only after the notification is persisted", async () => {
   const calls: string[] = [];
-  const consumer = new NotificationConsumer(broker, { async process() { calls.push("stored"); } });
+  const consumer = new NotificationConsumer(broker, { async list() { return { notifications: [], nextCursor: null }; }, async process() { calls.push("stored"); } });
   const channel = { ack() { calls.push("ack"); } } as unknown as ConfirmChannel;
   await consumer.handle(channel, message());
   assert.deepEqual(calls, ["stored", "ack"]);
 });
 
 test("storage failures leave the original message unacknowledged", async () => {
-  const consumer = new NotificationConsumer(broker, { async process() { throw new Error("database down"); } });
+  const consumer = new NotificationConsumer(broker, { async list() { return { notifications: [], nextCursor: null }; }, async process() { throw new Error("database down"); } });
   await assert.rejects(consumer.handle({ ack() { assert.fail("Must not acknowledge failed storage"); } } as unknown as ConfirmChannel, message()));
 });
 
 test("poison messages are confirmed in the rejected queue before acknowledging the original", async () => {
   const calls: string[] = [];
-  const consumer = new NotificationConsumer(broker, { async process() { assert.fail(); } }, { error() {} });
+  const consumer = new NotificationConsumer(broker, { async list() { return { notifications: [], nextCursor: null }; }, async process() { assert.fail(); } }, { error() {} });
   const channel = Object.assign(new EventEmitter(), {
     publish(exchange: string, queue: string, _content: Buffer, _options: unknown, confirm: () => void) {
       assert.equal(exchange, ""); assert.equal(queue, "notification.assignments.rejected.v1"); calls.push("rejected"); confirm(); return true;
@@ -93,7 +93,7 @@ test("poison messages are confirmed in the rejected queue before acknowledging t
 });
 
 test("failed dead-letter delivery keeps the original message unacknowledged", async () => {
-  const consumer = new NotificationConsumer(broker, { async process() { assert.fail(); } }, { error() {} });
+  const consumer = new NotificationConsumer(broker, { async list() { return { notifications: [], nextCursor: null }; }, async process() { assert.fail(); } }, { error() {} });
   const channel = Object.assign(new EventEmitter(), {
     publish(_exchange: string, _queue: string, _content: Buffer, _options: unknown, confirm: (error: Error) => void) { confirm(new Error("unavailable")); return true; },
     ack() { assert.fail(); },
@@ -107,7 +107,7 @@ test("new classes use regular methods and explicit constructor dependencies", ()
 });
 
 test("notification configuration is independent of user and task credentials", () => {
-  const env = { DB_HOST: "notification-db", DB_NAME: "notifications", DB_USER: "notification", DB_PASSWORD: "test-only" };
+  const env = { DB_HOST: "notification-db", DB_NAME: "notifications", DB_USER: "notification", DB_PASSWORD: "test-only", USER_SERVICE_URL: "http://user-service:3000" };
   assert.deepEqual(loadConfig(env).database, { host: "notification-db", name: "notifications", user: "notification", password: "test-only", port: 5432 });
   assert.equal("jwtSecret" in loadConfig(env), false);
   for (const key of Object.keys(env)) assert.throws(() => loadConfig({ ...env, [key]: "" }));

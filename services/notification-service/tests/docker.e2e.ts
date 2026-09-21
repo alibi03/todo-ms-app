@@ -115,6 +115,7 @@ test("assignment notifications survive Docker delivery failures", { timeout: 240
     await context.test("stored notifications survive service and database restarts", async () => {
       const before = await notifications(taskId);
       await stack.control("restart", "notification-service");
+      await waitFor(async () => await stack.health("notification-service") === 200, "service restart before database restart");
       await stack.control("restart", "notification-db");
       await waitFor(async () => await stack.health("notification-service") === 200, "recovered notification health");
       assert.deepEqual(await notifications(taskId), before);

@@ -43,5 +43,34 @@ test("notification persistence uses a disposable database", async context => {
       assert.deepEqual((await database.query("SELECT to_regclass('users') AS users, to_regclass('tasks') AS tasks")).rows, [{ users: null, tasks: null }]);
       assert.equal((await database.query("SELECT * FROM pg_constraint WHERE conrelid = 'notifications'::regclass AND contype = 'f'")).rowCount, 0);
     });
+    await context.test("listing is recipient-scoped, newest-first and keeps SQL-like titles as data", async () => {
+      const page = await service.list(20, {});
+      assert.equal(page.notifications.length, 1);
+      assert.equal(page.notifications[0]?.title, event.data.title);
+      assert.equal(page.nextCursor, null);
+      assert.deepEqual(await service.list(2147483647, {}), { notifications: [], nextCursor: null });
+      assert.notEqual((await service.list(30, {})).notifications[0]?.id, page.notifications[0]?.id);
+    });
+    await context.test("pagination excludes newer arrivals and duplicate redelivery preserves the cursor ID", async () => {
+      const events = Array.from({ length: 4 }, (_, index) => ({ ...event, eventId: randomUUID(), data: { ...event.data, recipientUserId: 40, title: "Page " + index } }));
+      for (const next of events) await service.process(next);
+      const first = await service.list(40, { limit: "2" });
+      assert.deepEqual(first.notifications.map(row => row.title), ["Page 3", "Page 2"]);
+      assert.ok(first.nextCursor);
+      const saved = first.notifications[0]!;
+      await service.process(events[3]!);
+      assert.equal((await service.list(40, { limit: "1" })).notifications[0]?.id, saved.id);
+      await service.process({ ...events[0]!, eventId: randomUUID(), data: { ...events[0]!.data, title: "New arrival" } });
+      const second = await service.list(40, { limit: "2", before: String(first.nextCursor) });
+      assert.deepEqual(second.notifications.map(row => row.title), ["Page 1", "Page 0"]);
+      assert.equal(second.nextCursor, null);
+      assert.deepEqual(await service.list(40, { before: "1" }), { notifications: [], nextCursor: null });
+    });
+    await context.test("the recipient cursor index and both migrations are present once", async () => {
+      await database.migrate();
+      assert.deepEqual((await database.query("SELECT name FROM pgmigrations ORDER BY id")).rows,
+        [{ name: "001_notifications" }, { name: "002_notification_listing" }]);
+      assert.equal((await database.query("SELECT indexname FROM pg_indexes WHERE tablename = 'notifications' AND indexname = 'notifications_recipient_id_index'")).rowCount, 1);
+    });
   } finally { await database.close(); }
 });

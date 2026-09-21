@@ -35,7 +35,7 @@ export class DockerTestStack {
     return stdout.trim();
   }
 
-  async query(service: "task-service" | "notification-service", sql: string, values: unknown[] = []): Promise<Record<string, unknown>[]> {
+  async query(service: "user-service" | "task-service" | "notification-service", sql: string, values: unknown[] = []): Promise<Record<string, unknown>[]> {
     const result = await this.run(service, `
       const {Pool}=require('pg'); const e=process.env; const {sql,values}=JSON.parse(process.argv[1]);
       const pool=new Pool({host:e.DB_HOST,port:Number(e.DB_PORT),database:e.DB_NAME,user:e.DB_USER,password:e.DB_PASSWORD,connectionTimeoutMillis:3000,statement_timeout:5000});
@@ -43,7 +43,7 @@ export class DockerTestStack {
     return JSON.parse(result);
   }
 
-  async health(service: "task-service" | "notification-service"): Promise<number> {
+  async health(service: "user-service" | "task-service" | "notification-service"): Promise<number> {
     return Number(await this.run(service, "fetch('http://127.0.0.1:3000/api/health').then(r=>console.log(r.status)).catch(()=>process.exit(1))"));
   }
 

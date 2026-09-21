@@ -144,6 +144,8 @@ services:
       DB_NAME: staj_notifications
       DB_USER: staj_notification
       DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?Set NOTIFICATION_DB_PASSWORD in .env}
+      USER_SERVICE_URL: http://user-service:3000
+      USER_SERVICE_TIMEOUT_MS: 3000
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
       RABBITMQ_USER: staj_app
