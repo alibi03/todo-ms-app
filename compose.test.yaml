@@ -23,3 +23,5 @@ services:
     environment:
       DB_NAME: staj_notifications_test_notifications
     ports: !override ["127.0.0.1::3000"]
+  web:
+    ports: !override ["127.0.0.1::8080"]
