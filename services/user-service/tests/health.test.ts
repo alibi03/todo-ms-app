@@ -3,10 +3,12 @@ import type { Server } from "node:http";
 import test from "node:test";
 
 import createApp from "../src/app";
+import type AppLogger from "../src/types/AppLogger";
 import unusedAuth from "./testAuth";
 
 async function startServer(
-  checkDatabase: () => Promise<void>
+  checkDatabase: () => Promise<void>,
+  logger: AppLogger = { error: () => undefined }
 ): Promise<{ baseUrl: string; server: Server }> {
   const server = createApp(
     {
@@ -14,7 +16,7 @@ async function startServer(
       checkDatabase,
       registration: { register: async () => { throw new Error("Not used by health tests."); } },
     },
-    { error: () => undefined }
+    logger
   ).listen(0, "127.0.0.1");
 
   await new Promise<void>((resolve, reject) => {
@@ -73,6 +75,22 @@ test("health endpoint reports an unavailable database", async () => {
     assert.equal(response.status, 503);
     assert.equal(body.status, "unavailable");
     assert.equal(body.dependencies.database, "down");
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test("health failures do not log database error details", async () => {
+  const logs: unknown[] = [];
+  const { baseUrl, server } = await startServer(
+    async () => { throw new Error("private database connection details"); },
+    { error(message, error) { logs.push({ message, error }); } }
+  );
+  try {
+    const response = await fetch(baseUrl + "/api/health");
+    assert.equal(response.status, 503);
+    await response.json();
+    assert.deepEqual(logs, [{ message: "User database health check failed.", error: { name: "Error" } }]);
   } finally {
     await stopServer(server);
   }

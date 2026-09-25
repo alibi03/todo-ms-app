@@ -16,6 +16,7 @@ export class UserDatabase {
       max: 10,
       connectionTimeoutMillis: 5_000,
     });
+    this.pool.on("error", () => console.error("User database idle connection failed."));
   }
 
   async migrate(): Promise<void> {

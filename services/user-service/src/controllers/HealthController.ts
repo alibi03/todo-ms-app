@@ -18,7 +18,9 @@ export class HealthController {
         dependencies: { database: "up" },
       });
     } catch (error) {
-      this.logger.error("User database health check failed.", error);
+      this.logger.error("User database health check failed.", {
+        name: error instanceof Error ? error.name : "UnknownError",
+      });
       response.status(503).json({
         status: "unavailable",
         service: "user-service",
